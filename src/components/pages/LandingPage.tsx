@@ -3,7 +3,11 @@ import { OrnamentDivider, HeartSigilIcon, RoseIcon } from '@/components/icons/Sv
 import DustParticles from '@/components/effects/DustParticles';
 import CandleGlow from '@/components/effects/CandleGlow';
 import WaxSealIcon from '@/components/icons/WaxSealIcon';
-import { RoseFlower, IvyVine, CherryBlossomFlower } from '@/components/icons/FlowerSvgs';
+import {
+  RoseFlower, HibiscusFlower, LilyFlower, TulipFlower,
+  PeonyFlower, LavenderFlower, WildRoseFlower, IvyVine,
+  CherryBlossomFlower, DaisyFlower, ForgetMeNotFlower, SunFlower,
+} from '@/components/icons/FlowerSvgs';
 
 interface LandingPageProps { onCompose: () => void; onMyLetters: () => void; }
 
@@ -12,9 +16,30 @@ export default function LandingPage({ onCompose, onMyLetters }: LandingPageProps
     <div className="relative min-h-screen overflow-hidden parchment-bg">
       <DustParticles /><CandleGlow />
 
-      <div className="absolute top-20 left-8 opacity-25 pointer-events-none hidden md:block"><RoseFlower size={60} color="#6B1025" /></div>
-      <div className="absolute bottom-32 right-12 opacity-20 pointer-events-none hidden md:block"><IvyVine size={70} color="#264D3A" /></div>
-      <div className="absolute top-1/2 left-4 opacity-15 pointer-events-none hidden lg:block"><CherryBlossomFlower size={55} color="#9a5060" /></div>
+      {/* Scattered flowers — responsive density */}
+      {/* Mobile: 3 flowers */}
+      <div className="absolute top-16 right-4 opacity-20 pointer-events-none"><RoseFlower size={40} color="#6B1025" /></div>
+      <div className="absolute bottom-40 left-3 opacity-15 pointer-events-none"><LavenderFlower size={35} color="#5a3d6b" /></div>
+      <div className="absolute top-[60%] right-6 opacity-12 pointer-events-none"><DaisyFlower size={32} color="#8b7340" /></div>
+
+      {/* Tablet+: add more */}
+      <div className="absolute top-24 left-8 opacity-20 pointer-events-none hidden md:block"><RoseFlower size={55} color="#6B1025" /></div>
+      <div className="absolute bottom-28 right-10 opacity-18 pointer-events-none hidden md:block"><IvyVine size={65} color="#264D3A" /></div>
+      <div className="absolute top-[45%] left-3 opacity-14 pointer-events-none hidden md:block"><CherryBlossomFlower size={50} color="#9a5060" /></div>
+      <div className="absolute top-36 right-[15%] opacity-12 pointer-events-none hidden md:block"><TulipFlower size={42} color="#8A1538" /></div>
+      <div className="absolute bottom-[35%] left-[8%] opacity-10 pointer-events-none hidden md:block"><WildRoseFlower size={38} color="#8A1538" /></div>
+
+      {/* Desktop: full botanical spread */}
+      <div className="absolute top-20 left-[22%] opacity-15 pointer-events-none hidden lg:block"><PeonyFlower size={50} color="#6B1025" /></div>
+      <div className="absolute bottom-20 left-[18%] opacity-12 pointer-events-none hidden lg:block"><HibiscusFlower size={48} color="#8A1538" /></div>
+      <div className="absolute top-[30%] right-[5%] opacity-10 pointer-events-none hidden lg:block"><LilyFlower size={45} color="#8b7340" /></div>
+      <div className="absolute bottom-[22%] right-[20%] opacity-14 pointer-events-none hidden lg:block"><ForgetMeNotFlower size={42} color="#264D3A" /></div>
+      <div className="absolute top-[70%] left-[30%] opacity-8 pointer-events-none hidden lg:block"><SunFlower size={40} color="#8b7340" /></div>
+
+      {/* XL: corners filled */}
+      <div className="absolute top-12 right-[30%] opacity-10 pointer-events-none hidden xl:block"><LavenderFlower size={55} color="#5a3d6b" /></div>
+      <div className="absolute bottom-12 left-[35%] opacity-8 pointer-events-none hidden xl:block"><DaisyFlower size={45} color="#8b7340" /></div>
+      <div className="absolute top-[55%] right-[28%] opacity-7 pointer-events-none hidden xl:block"><CherryBlossomFlower size={38} color="#9a5060" /></div>
 
       <nav className="no-print relative z-20 flex items-center justify-between px-6 py-5 md:px-12 md:py-6">
         <div className="flex items-center gap-2.5">

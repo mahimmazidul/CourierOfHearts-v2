@@ -132,29 +132,15 @@ export async function createLetter(payload) {
 - **Caching:** Redis
 - **Auth:** JWT tokens for letter authors
 
-### Database Schema
+### Full API Documentation
 
-```sql
-CREATE TABLE letters (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug VARCHAR(10) UNIQUE NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  recipient VARCHAR(255) NOT NULL,
-  content TEXT NOT NULL,
-  signature VARCHAR(255),
-  seal_type VARCHAR(20) NOT NULL,
-  seal_color VARCHAR(20) NOT NULL,
-  crest VARCHAR(20) DEFAULT 'none',
-  is_private BOOLEAN DEFAULT false,
-  password_hash VARCHAR(255),
-  expires_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX idx_letters_slug ON letters(slug);
-CREATE INDEX idx_letters_created_at ON letters(created_at);
-```
+See **[API.md](API.md)** for the complete specification including:
+- Request/response examples for every endpoint
+- Validation rules and constraints
+- Error codes and rate limiting
+- Database schema with all fields
+- Security considerations
+- Deployment architecture
 
 ---
 
