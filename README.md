@@ -6,7 +6,7 @@ A beautiful web application for writing and sending medieval-style letters. Writ
 
 When your recipient opens the link, they experience an immersive, ceremonial letter-opening sequence — complete with wax seal breaking, envelope unfolding, and ink fading into view.
 
-**This is not a notes app. This is a love letter, delivered with craftsmanship.**
+**This is not a notes app. This is a letter, delivered with craftsmanship.**
 
 ---
 
@@ -52,8 +52,8 @@ When your recipient opens the link, they experience an immersive, ceremonial let
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/courier-of-hearts.git
-cd courier-of-hearts
+git clone https://github.com/mahimmazidul/CourierOfHearts/.git
+cd CourierOfHearts
 
 # Install dependencies
 npm install
