@@ -8,6 +8,7 @@ import { HeartSigilIcon, OrnamentDivider, CornerOrnament } from '@/components/ic
 import CrestDecoration from '@/components/letter/CrestDecoration';
 import { ALL_FLOWERS } from '@/components/icons/FlowerSvgs';
 import { getFontFamilyByChoice, getSigFontFamilyByChoice } from '@/components/pages/ComposePage';
+import { escapeLetterHtml, hasRichLetterHtml, richHtmlTextLength, sanitizeLetterHtml, sliceRichLetterHtml } from '@/utils/sanitizeHtml';
 
 type Step = 'loading' | 'error' | 'password' | 'arriving' | 'envelope' | 'cracking' | 'opening' | 'rising' | 'reading';
 
@@ -33,7 +34,35 @@ function TypewriterText({ text, fontFamily, onDone }: { text: string; fontFamily
   return (
     <span className="ink-engraved" style={{ fontFamily, letterSpacing: '0.01em', wordSpacing: '0.04em' }}>
       {text.slice(0, chars)}
-      {chars < text.length && <span className="inline-block w-[2px] h-[0.9em] ml-[1px] align-text-bottom gentle-pulse" style={{ background: 'rgba(26,18,8,0.3)' }} />}
+    </span>
+  );
+}
+
+function RichTypewriterText({ html, fontFamily, onDone }: { html: string; fontFamily: string; onDone: () => void }) {
+  const safeHtml = useMemo(() => sanitizeLetterHtml(html), [html]);
+  const totalChars = useMemo(() => richHtmlTextLength(safeHtml), [safeHtml]);
+  const [chars, setChars] = useState(0);
+  const raf = useRef(0); const last = useRef(0); const count = useRef(0);
+  const done = useRef(onDone); done.current = onDone;
+
+  useEffect(() => {
+    count.current = 0; last.current = 0; setChars(0);
+    const ms = Math.max(35, Math.min(60, 2500 / Math.max(totalChars, 1)));
+    const tick = (ts: number) => {
+      if (!last.current) last.current = ts;
+      const d = ts - last.current;
+      if (d >= ms) { count.current = Math.min(count.current + Math.floor(d / ms), totalChars); setChars(count.current); last.current = ts; }
+      if (count.current < totalChars) raf.current = requestAnimationFrame(tick); else done.current();
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf.current);
+  }, [totalChars, safeHtml]);
+
+  const partialHtml = useMemo(() => sliceRichLetterHtml(safeHtml, chars), [safeHtml, chars]);
+
+  return (
+    <span className="rich-letter-content ink-engraved" style={{ fontFamily, letterSpacing: '0.01em', wordSpacing: '0.04em' }}>
+      <span dangerouslySetInnerHTML={{ __html: partialHtml }} />
     </span>
   );
 }
@@ -56,14 +85,19 @@ function splitPages(text: string): string[] {
 
 // The reading view — typewriter starts from salutation
 function ReadingView({ letter, onBack }: { letter: Letter; onBack: () => void }) {
+  const isRichContent = hasRichLetterHtml(letter.content);
   const [typingDone, setTypingDone] = useState(false);
-  const pages = useMemo(() => splitPages(letter.content), [letter.content]);
+  const safeContent = useMemo(() => sanitizeLetterHtml(letter.content), [letter.content]);
+  const pages = useMemo(() => isRichContent ? [safeContent] : splitPages(letter.content), [letter.content, isRichContent, safeContent]);
   const total = pages.length;
   const sal = letter.salutation || 'My dearest';
   const cls = letter.closing || 'Forever yours,';
 
+  useEffect(() => { setTypingDone(false); }, [letter.content]);
+
   // Build the full text for page 1: salutation + body
   const fullFirstPage = `${sal} ${letter.recipient},\n\n${pages[0]}`;
+  const fullRichFirstPage = `${escapeLetterHtml(sal)} ${escapeLetterHtml(letter.recipient)},<br><br>${pages[0]}`;
 
   return (
     <div className="min-h-screen parchment-bg fade-slide-up">
@@ -92,9 +126,11 @@ function ReadingView({ letter, onBack }: { letter: Letter; onBack: () => void })
               </div>
             )}
 
-            {/* Text — typewriter on page 1 including salutation, normal on other pages */}
+            {/* Text — typewriter for plain letters, preserved rich fonts for styled letters */}
             <div className="relative z-10 text-[17px] md:text-[18px] leading-[1.95] whitespace-pre-wrap">
-              {pi === 0 ? (
+              {isRichContent ? (
+                <RichTypewriterText html={pi === 0 ? fullRichFirstPage : pc} fontFamily={getFontFamilyByChoice(letter.bodyFont)} onDone={() => setTypingDone(true)} />
+              ) : pi === 0 ? (
                 <TypewriterText text={fullFirstPage} fontFamily={getFontFamilyByChoice(letter.bodyFont)} onDone={() => setTypingDone(true)} />
               ) : (
                 <div className="ink-fade-in ink-engraved" style={{ fontFamily: getFontFamilyByChoice(letter.bodyFont), letterSpacing: '0.01em' }}>{pc}</div>
@@ -136,7 +172,7 @@ export default function DeliveryPage({ slug, onBack }: { slug: string; onBack: (
   useEffect(() => {
     (async () => {
       const r = await getLetter(slug);
-      if (r.success && r.data) { setLetter(r.data); if (r.data.isPrivate && r.data.password) setStep('password'); else { setStep('arriving'); setTimeout(() => setStep('envelope'), 3000); } }
+      if (r.success && r.data) { setLetter(r.data); if (r.data.requiresPassword) setStep('password'); else { setStep('arriving'); setTimeout(() => setStep('envelope'), 3000); } }
       else { setError(r.error || 'Letter not found'); setStep('error'); }
     })();
   }, [slug]);
@@ -219,8 +255,8 @@ export default function DeliveryPage({ slug, onBack }: { slug: string; onBack: (
             <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px]" style={{ background: 'linear-gradient(to bottom, transparent 8%, rgba(0,0,0,0.05) 50%, transparent 92%)' }} />
             {/* Name */}
             {(step === 'envelope' || step === 'cracking') && letter && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <p className="font-script text-xl select-none ink-engraved" style={{ opacity: 0.35 }}>{letter.recipient}</p>
+              <div className="absolute inset-x-0 bottom-8 flex justify-center px-6 pointer-events-none">
+                <p className="font-script text-xl select-none ink-engraved truncate max-w-full" style={{ opacity: 0.35 }}>{letter.recipient}</p>
               </div>
             )}
           </div>

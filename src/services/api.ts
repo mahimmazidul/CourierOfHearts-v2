@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import type {
   Letter,
   CreateLetterPayload,
@@ -7,101 +6,115 @@ import type {
   LettersListResponse,
 } from '@/types/letter';
 
-const STORAGE_KEY = 'courier_of_hearts_letters';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
+const TOKEN_STORAGE_KEY = 'courier_of_hearts_management_tokens';
 
-function generateSlug(): string {
-  return nanoid(10);
-}
+type TokenStore = Record<string, string>;
 
-function getAllLetters(): Letter[] {
+type ApiLetterResponse = LetterResponse & { token?: string };
+
+function getTokenStore(): TokenStore {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as Letter[];
+    const raw = localStorage.getItem(TOKEN_STORAGE_KEY);
+    return raw ? JSON.parse(raw) as TokenStore : {};
   } catch {
-    return [];
+    return {};
   }
 }
 
-function saveAllLetters(letters: Letter[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(letters));
+function saveTokenStore(tokens: TokenStore): void {
+  localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokens));
 }
 
-function delay(ms = 80): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function rememberToken(slug: string, token?: string): void {
+  if (!token) return;
+  const tokens = getTokenStore();
+  tokens[slug] = token;
+  saveTokenStore(tokens);
+}
+
+function forgetToken(slug: string): void {
+  const tokens = getTokenStore();
+  delete tokens[slug];
+  saveTokenStore(tokens);
+}
+
+function getToken(slug: string): string | undefined {
+  return getTokenStore()[slug];
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  const body = await response.json().catch(() => ({ success: false, error: 'Invalid server response' }));
+  return body as T;
 }
 
 export async function createLetter(payload: CreateLetterPayload): Promise<LetterResponse> {
-  await delay();
-  const now = new Date().toISOString();
-  const letter: Letter = {
-    id: nanoid(),
-    slug: generateSlug(),
-    salutation: payload.salutation || 'My dearest',
-    recipient: payload.recipient,
-    content: payload.content,
-    closing: payload.closing || 'Forever yours,',
-    signature: payload.signature,
-    sealType: payload.sealType,
-    sealColor: payload.sealColor,
-    crest: payload.crest,
-    customInitials: payload.customInitials || '',
-    bodyFont: payload.bodyFont || 'eb-garamond',
-    signatureFont: payload.signatureFont || 'great-vibes',
-    flowers: payload.flowers || [],
-    isPrivate: payload.isPrivate,
-    password: payload.password,
-    expiresAt: payload.expiresAt,
-    createdAt: now,
-    updatedAt: now,
-  };
-  const letters = getAllLetters();
-  letters.push(letter);
-  saveAllLetters(letters);
-  return { success: true, data: letter };
+  const result = await request<ApiLetterResponse>('/letters', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  if (result.success && result.data) rememberToken(result.data.slug, result.token);
+  return { success: result.success, data: result.data, error: result.error };
 }
 
 export async function getLetter(slug: string): Promise<LetterResponse> {
-  await delay();
-  const letters = getAllLetters();
-  const letter = letters.find((l) => l.slug === slug);
-  if (!letter) return { success: false, error: 'Letter not found' };
-  if (letter.expiresAt && new Date(letter.expiresAt) < new Date())
-    return { success: false, error: 'This letter has faded with time' };
-  return { success: true, data: letter };
+  return request<LetterResponse>(`/letters/${encodeURIComponent(slug)}`);
 }
 
 export async function updateLetter(slug: string, payload: UpdateLetterPayload): Promise<LetterResponse> {
-  await delay();
-  const letters = getAllLetters();
-  const index = letters.findIndex((l) => l.slug === slug);
-  if (index === -1) return { success: false, error: 'Letter not found' };
-  letters[index] = { ...letters[index], ...payload, updatedAt: new Date().toISOString() };
-  saveAllLetters(letters);
-  return { success: true, data: letters[index] };
+  const token = getToken(slug);
+  return request<LetterResponse>(`/letters/${encodeURIComponent(slug)}`, {
+    method: 'PUT',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function deleteLetter(slug: string): Promise<LetterResponse> {
-  await delay();
-  const letters = getAllLetters();
-  const index = letters.findIndex((l) => l.slug === slug);
-  if (index === -1) return { success: false, error: 'Letter not found' };
-  const deleted = letters.splice(index, 1)[0];
-  saveAllLetters(letters);
-  return { success: true, data: deleted };
+  const token = getToken(slug);
+  const result = await request<LetterResponse>(`/letters/${encodeURIComponent(slug)}`, {
+    method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  if (result.success) forgetToken(slug);
+  return result;
 }
 
 export async function listLetters(): Promise<LettersListResponse> {
-  await delay();
-  return { success: true, data: getAllLetters() };
+  const slugs = Object.keys(getTokenStore());
+  if (slugs.length === 0) return { success: true, data: [] };
+
+  const result = await request<LettersListResponse>(`/letters?slugs=${encodeURIComponent(slugs.join(','))}`);
+  if (result.success && result.data) {
+    const liveSlugs = new Set(result.data.map((letter: Letter) => letter.slug));
+    const tokens = getTokenStore();
+    let changed = false;
+    for (const slug of Object.keys(tokens)) {
+      if (!liveSlugs.has(slug)) {
+        delete tokens[slug];
+        changed = true;
+      }
+    }
+    if (changed) saveTokenStore(tokens);
+  }
+  return result;
 }
 
 export async function unlockLetter(slug: string, password: string): Promise<LetterResponse> {
-  await delay();
-  const letters = getAllLetters();
-  const letter = letters.find((l) => l.slug === slug);
-  if (!letter) return { success: false, error: 'Letter not found' };
-  if (letter.password && letter.password !== password)
-    return { success: false, error: 'Incorrect passphrase' };
-  return { success: true, data: letter };
+  return request<LetterResponse>(`/letters/${encodeURIComponent(slug)}/unlock`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
+}
+
+export async function recordLetterView(slug: string): Promise<{ success: boolean; views?: number; error?: string }> {
+  return request<{ success: boolean; views?: number; error?: string }>(`/letters/${encodeURIComponent(slug)}/view`, {
+    method: 'POST',
+  });
 }

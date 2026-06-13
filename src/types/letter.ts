@@ -29,6 +29,8 @@ export interface Letter {
   signatureFont: SignatureFont;
   flowers: FlowerPlacement[];
   isPrivate: boolean;
+  requiresPassword?: boolean;
+  views?: number;
   password?: string;
   expiresAt?: string;
   createdAt: string;

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="desk" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#080503"/><stop offset=".5" stop-color="#231407"/><stop offset="1" stop-color="#120803"/></linearGradient>
+    <radialGradient id="light" cx="50%" cy="48%" r="55%"><stop stop-color="#d8b46b" stop-opacity=".32"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="env" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8c28a"/><stop offset="1" stop-color="#a38346"/></linearGradient>
+    <radialGradient id="wax" cx="38%" cy="28%" r="70%"><stop stop-color="#aa3151"/><stop offset=".55" stop-color="#6b1025"/><stop offset="1" stop-color="#3b0712"/></radialGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000" flood-opacity=".55"/></filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#desk)"/>
+  <rect width="1280" height="720" fill="url(#light)"/>
+  <g transform="translate(455 245)" filter="url(#shadow)">
+    <rect width="370" height="250" rx="5" fill="url(#env)"/>
+    <path d="M0 0l185 132L370 0" fill="none" stroke="#70501f" stroke-opacity=".32" stroke-width="3"/>
+    <path d="M0 250l143-112M370 250L227 138" fill="none" stroke="#70501f" stroke-opacity=".22" stroke-width="2"/>
+    <text x="185" y="196" text-anchor="middle" font-family="Georgia,serif" font-size="32" fill="#1a1208" opacity=".34">Eleanor</text>
+  </g>
+  <g transform="translate(592 305)" filter="url(#shadow)">
+    <circle cx="48" cy="48" r="48" fill="url(#wax)"/>
+    <circle cx="48" cy="48" r="31" fill="none" stroke="#f3c99c" stroke-opacity=".25" stroke-width="2"/>
+    <path d="M48 72s-25-16-25-34c0-11 7-18 16-18 6 0 9 3 9 7 0-4 3-7 9-7 9 0 16 7 16 18 0 18-25 34-25 34z" fill="#f0d8aa" opacity=".86"/>
+  </g>
+  <text x="640" y="445" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" letter-spacing="4" fill="#dfc893" opacity=".55">TAP TO BREAK THE SEAL</text>
+  <text x="640" y="120" text-anchor="middle" font-family="Georgia,serif" font-size="25" font-style="italic" fill="#e7d4ac" opacity=".52">A letter has arrived</text>
+</svg>

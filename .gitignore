@@ -42,6 +42,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Local backend data
+server/data/letters.json
+
 # TypeScript
 *.tsbuildinfo
 

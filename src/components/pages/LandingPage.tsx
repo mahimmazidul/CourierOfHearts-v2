@@ -6,15 +6,36 @@ import WaxSealIcon from '@/components/icons/WaxSealIcon';
 import {
   RoseFlower, HibiscusFlower, LilyFlower, TulipFlower,
   PeonyFlower, LavenderFlower, WildRoseFlower, IvyVine,
-  CherryBlossomFlower, DaisyFlower, ForgetMeNotFlower, SunFlower,
+  CherryBlossomFlower, DaisyFlower, ForgetMeNotFlower, SunFlower, ALL_FLOWERS,
 } from '@/components/icons/FlowerSvgs';
 
 interface LandingPageProps { onCompose: () => void; onMyLetters: () => void; }
+
+const FLOWER_FIELD = Array.from({ length: 120 }, (_, i) => ({
+  id: i,
+  flower: ALL_FLOWERS[i % ALL_FLOWERS.length],
+  left: (i * 37 + 11) % 100,
+  top: (i * 53 + 7) % 100,
+  size: 18 + ((i * 17) % 38),
+  rotation: (i * 29) % 80 - 40,
+  opacity: 0.035 + ((i % 7) * 0.014),
+}));
 
 export default function LandingPage({ onCompose, onMyLetters }: LandingPageProps) {
   return (
     <div className="relative min-h-screen overflow-hidden parchment-bg">
       <DustParticles /><CandleGlow />
+
+      {/* Dense botanical parchment field */}
+      {FLOWER_FIELD.map(({ id, flower, left, top, size, rotation, opacity }) => {
+        const Flower = flower.Component;
+        return (
+          <div key={id} className="absolute pointer-events-none hidden sm:block"
+            style={{ left: `${left}%`, top: `${top}%`, opacity, transform: `rotate(${rotation}deg) translate(-50%,-50%)`, zIndex: 1 }}>
+            <Flower size={size} color={flower.defaultColor} />
+          </div>
+        );
+      })}
 
       {/* Scattered flowers — responsive density */}
       {/* Mobile: 3 flowers */}

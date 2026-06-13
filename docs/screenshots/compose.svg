@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d4c295"/><stop offset="1" stop-color="#9b7d45"/></linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f0e4c2"/><stop offset="1" stop-color="#cdb47c"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#2a1608" flood-opacity=".35"/></filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect y="0" width="1280" height="56" fill="#c4b48e" opacity=".92"/>
+  <text x="56" y="35" font-family="Arial,sans-serif" font-size="13" letter-spacing="3" fill="#1a1208" opacity=".55">← RETURN</text>
+  <text x="640" y="35" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" letter-spacing="4" fill="#6b1025" opacity=".7">COMPOSING</text>
+  <text x="1168" y="35" text-anchor="end" font-family="Arial,sans-serif" font-size="13" letter-spacing="3" fill="#1a1208" opacity=".55">PREVIEW →</text>
+  <g transform="translate(130 92)" filter="url(#shadow)">
+    <rect width="700" height="560" rx="4" fill="url(#paper)"/>
+    <line x1="66" y1="0" x2="66" y2="560" stroke="#8a1538" stroke-opacity=".10"/>
+    <g stroke="#6b4b1e" stroke-opacity=".08">
+      <line x1="0" y1="120" x2="700" y2="120"/><line x1="0" y1="158" x2="700" y2="158"/><line x1="0" y1="196" x2="700" y2="196"/><line x1="0" y1="234" x2="700" y2="234"/><line x1="0" y1="272" x2="700" y2="272"/><line x1="0" y1="310" x2="700" y2="310"/><line x1="0" y1="348" x2="700" y2="348"/><line x1="0" y1="386" x2="700" y2="386"/><line x1="0" y1="424" x2="700" y2="424"/>
+    </g>
+    <text x="86" y="86" font-family="Georgia,serif" font-size="28" font-style="italic" fill="#1a1208" opacity=".7">My dearest Eleanor,</text>
+    <text x="86" y="155" font-family="Georgia,serif" font-size="24" fill="#1a1208" opacity=".55">Every moment apart feels like a century...</text>
+    <text x="86" y="198" font-family="Georgia,serif" font-size="24" fill="#1a1208" opacity=".42">Let the ink carry what the voice cannot.</text>
+    <text x="548" y="486" font-family="Georgia,serif" font-size="24" font-style="italic" fill="#1a1208" opacity=".62">Forever yours,</text>
+    <text x="588" y="526" font-family="Georgia,serif" font-size="34" fill="#6b1025" opacity=".7">William</text>
+  </g>
+  <g transform="translate(890 110)">
+    <circle cx="150" cy="56" r="48" fill="#7b1730"/><path d="M150 86s-28-18-28-38c0-12 8-20 18-20 6 0 10 3 10 8 0-5 4-8 10-8 10 0 18 8 18 20 0 20-28 38-28 38z" fill="#ead4a6" opacity=".8"/>
+    <text x="0" y="150" font-family="Arial,sans-serif" font-size="13" letter-spacing="3" fill="#1a1208" opacity=".65">SEAL DESIGN</text>
+    <rect x="0" y="176" width="94" height="42" rx="3" fill="#1a1208" opacity=".08"/><rect x="104" y="176" width="94" height="42" rx="3" fill="#fff" opacity=".12"/><rect x="208" y="176" width="94" height="42" rx="3" fill="#fff" opacity=".12"/>
+    <text x="47" y="202" text-anchor="middle" font-family="Georgia,serif" font-size="17" fill="#1a1208" opacity=".75">Rose</text><text x="151" y="202" text-anchor="middle" font-family="Georgia,serif" font-size="17" fill="#1a1208" opacity=".45">Heart</text><text x="255" y="202" text-anchor="middle" font-family="Georgia,serif" font-size="17" fill="#1a1208" opacity=".45">Crown</text>
+    <text x="0" y="286" font-family="Arial,sans-serif" font-size="13" letter-spacing="3" fill="#1a1208" opacity=".65">WAX COLOR</text>
+    <circle cx="24" cy="328" r="19" fill="#6B1025"/><circle cx="76" cy="328" r="19" fill="#8A1538"/><circle cx="128" cy="328" r="19" fill="#264D3A"/><circle cx="180" cy="328" r="19" fill="#8b7340"/><circle cx="232" cy="328" r="19" fill="#1a1208"/>
+    <rect x="0" y="442" width="302" height="56" rx="3" fill="#1a1208"/><text x="151" y="476" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" letter-spacing="3" fill="#e8d8ae">SEAL &amp; SEND</text>
+  </g>
+</svg>

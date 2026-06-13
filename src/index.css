@@ -185,6 +185,27 @@ body {
 .parchment-input:focus { border-bottom-color: rgba(139,115,64,0.65); }
 .parchment-input::placeholder { color: rgba(26,18,8,0.4); font-style: italic; font-size: inherit; }
 
+.rich-letter-editor {
+  display: block;
+  border-bottom: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+.rich-letter-editor:empty::before {
+  content: attr(data-placeholder);
+  white-space: pre-wrap;
+  color: rgba(26,18,8,0.4);
+  font-style: italic;
+  pointer-events: none;
+}
+.rich-letter-editor font,
+.rich-letter-editor span,
+.rich-letter-content font,
+.rich-letter-content span {
+  line-height: inherit;
+}
+
 /* ========== PRINT ========== */
 @page { size: A4; margin: 15mm; }
 @media print {

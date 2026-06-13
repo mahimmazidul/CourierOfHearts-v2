@@ -2,7 +2,7 @@
 
 > *Send a letter worth keeping.*
 
-A beautiful web application for writing and sending medieval-style love letters. Write your heart on parchment, seal it with wax, and send a private link to the one who matters most.
+A beautiful web application for writing and sending medieval-style letters. Write your heart on parchment, seal it with wax, and send a private link to the one who matters most.
 
 When your recipient opens the link, they experience an immersive, ceremonial letter-opening sequence — complete with wax seal breaking, envelope unfolding, and ink fading into view.
 
@@ -12,7 +12,14 @@ When your recipient opens the link, they experience an immersive, ceremonial let
 
 ## Screenshots
 
-*(Coming soon)*
+### Landing
+![The Courier of Hearts landing page](docs/screenshots/landing.png)
+
+### Compose
+![Letter composition screen](docs/screenshots/compose.png)
+
+### Delivery Ceremony
+![Wax-sealed delivery ceremony](docs/screenshots/delivery.png)
 
 ---
 
@@ -51,8 +58,11 @@ cd courier-of-hearts
 # Install dependencies
 npm install
 
-# Start development server
+# Start frontend development server
 npm run dev
+
+# In another terminal, start the backend API
+npm run server
 
 # Build for production
 npm run build
@@ -92,19 +102,35 @@ src/
 │       └── MyLettersPage.tsx  # Letter management
 ```
 
+### Backend API
+
+This repository now includes a Fastify backend that implements the API described in [`API.md`](API.md).
+
+```bash
+# Start the API on http://localhost:3001
+npm run server
+
+# Optional development mode with Node's file watcher
+npm run dev:server
+```
+
+Useful environment variables:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PORT` | `3001` | API server port |
+| `HOST` | `0.0.0.0` | API bind host |
+| `JWT_SECRET` | development fallback | Secret used to sign management tokens |
+| `JWT_EXPIRES_IN` | `365d` | Management token lifetime |
+| `DATA_FILE` | `server/data/letters.json` | JSON persistence file |
+| `CORS_ORIGIN` | `true` | CORS origin setting |
+| `VITE_API_BASE_URL` | `http://localhost:3001/api/v1` | Frontend API base URL |
+
+The backend stores letters in a local JSON file for easy development, hashes private-letter passphrases with bcrypt, and issues JWT management tokens on letter creation. The frontend stores only those per-letter management tokens in `localStorage` so the existing **My Letters**, update, and delete flows can work without user accounts.
+
 ### Service Layer
 
-All data access goes through `services/api.ts`. Components never touch localStorage directly. This makes swapping to a real backend trivial:
-
-```typescript
-// Today (localStorage):
-export async function createLetter(payload) { ... }
-
-// Tomorrow (REST API):
-export async function createLetter(payload) {
-  return fetch('/api/v1/letters', { method: 'POST', body: JSON.stringify(payload) });
-}
-```
+All data access goes through `services/api.ts`. Components never touch storage directly. The service now calls the REST API, remembers returned management tokens client-side, and attaches `Authorization: Bearer <token>` for management operations.
 
 ---
 
@@ -146,14 +172,23 @@ See **[API.md](API.md)** for the complete specification including:
 
 ## Deployment
 
-### Static Hosting (Current)
+### Static Hosting / GitHub Pages
 
-The build produces a single `dist/index.html` file. Deploy to any static host:
+The build produces a single `dist/index.html` file plus copied public assets such as the favicon. Deploy to any static host:
 
 - **Vercel:** `npx vercel --prod`
 - **Netlify:** Drag and drop `dist/` folder
-- **GitHub Pages:** Push `dist/` to `gh-pages` branch
+- **GitHub Pages:** this repo includes `.github/workflows/pages.yml`
 - **Any web server:** Serve `dist/index.html`
+
+To enable GitHub Pages:
+
+1. Push the repository to GitHub.
+2. In **Settings → Pages**, choose **GitHub Actions** as the source.
+3. Push to `main` or `master`, or run the workflow manually.
+4. Optional but recommended: set repository variable `VITE_API_BASE_URL` to your deployed backend URL, e.g. `https://api.example.com/api/v1`.
+
+Note: GitHub Pages hosts only the static frontend. The Fastify backend must run separately if you want shareable letters to work across devices.
 
 ### Docker (Future)
 

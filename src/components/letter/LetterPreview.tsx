@@ -5,6 +5,7 @@ import { OrnamentDivider, CornerOrnament } from '@/components/icons/SvgIcons';
 import CrestDecoration from '@/components/letter/CrestDecoration';
 import { ALL_FLOWERS } from '@/components/icons/FlowerSvgs';
 import { getFontFamilyByChoice, getSigFontFamilyByChoice } from '@/components/pages/ComposePage';
+import { hasRichLetterHtml, sanitizeLetterHtml } from '@/utils/sanitizeHtml';
 
 interface LetterPreviewProps {
   salutation?: string;
@@ -49,7 +50,9 @@ export default function LetterPreview({
   customInitials, bodyFont = 'eb-garamond', signatureFont = 'great-vibes',
   flowers = [], onBack, onSend, sending, readOnly,
 }: LetterPreviewProps) {
-  const pages = useMemo(() => splitIntoPages(content), [content]);
+  const isRichContent = hasRichLetterHtml(content);
+  const safeContent = useMemo(() => sanitizeLetterHtml(content), [content]);
+  const pages = useMemo(() => isRichContent ? [safeContent] : splitIntoPages(content), [content, isRichContent, safeContent]);
   const totalPages = pages.length;
 
   return (
@@ -89,10 +92,16 @@ export default function LetterPreview({
             )}
 
             {/* Body — deep engraved */}
-            <div className="text-[17px] md:text-[18px] leading-[1.95] whitespace-pre-wrap relative z-10 ink-fade-in-delayed ink-engraved"
-              style={{ fontFamily: getFontFamilyByChoice(bodyFont), letterSpacing: '0.01em', wordSpacing: '0.04em' }}>
-              {pageContent}
-            </div>
+            {isRichContent ? (
+              <div className="rich-letter-content text-[17px] md:text-[18px] leading-[1.95] whitespace-pre-wrap relative z-10 ink-fade-in-delayed ink-engraved"
+                style={{ fontFamily: getFontFamilyByChoice(bodyFont), letterSpacing: '0.01em', wordSpacing: '0.04em' }}
+                dangerouslySetInnerHTML={{ __html: pageContent }} />
+            ) : (
+              <div className="text-[17px] md:text-[18px] leading-[1.95] whitespace-pre-wrap relative z-10 ink-fade-in-delayed ink-engraved"
+                style={{ fontFamily: getFontFamilyByChoice(bodyFont), letterSpacing: '0.01em', wordSpacing: '0.04em' }}>
+                {pageContent}
+              </div>
+            )}
 
             {/* Last page: closing + signature */}
             {pi === totalPages - 1 && (

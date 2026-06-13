@@ -394,9 +394,21 @@ CREATE INDEX idx_letters_expires ON letters(expires_at) WHERE expires_at IS NOT 
 
 ## Current Implementation
 
-The frontend currently uses `services/api.ts` which wraps localStorage calls behind the same interface as a REST client. To switch to the real API:
+This repository includes a development-ready Fastify backend in `server/index.js` and a REST-backed frontend service in `src/services/api.ts`.
 
-1. Replace localStorage calls in `api.ts` with `fetch()` calls
-2. Add the `Authorization` header for management operations
-3. Handle the `requiresPassword` flag on private letters
-4. No component changes needed — the service layer is the only boundary
+Implemented locally:
+
+1. `POST /letters`, `GET /letters/:slug`, `PUT /letters/:slug`, `DELETE /letters/:slug`, `POST /letters/:slug/unlock`, `POST /letters/:slug/view`
+2. `GET /letters?slugs=a,b,c` to support the account-free "My Letters" screen using locally stored management tokens
+3. `GET /seals`, `GET /crests`, `GET /health`
+4. bcrypt passphrase hashing for private letters
+5. JWT management tokens returned on creation and required for updates/deletes
+6. JSON-file persistence at `server/data/letters.json` by default
+
+Run it with:
+
+```bash
+npm run server
+```
+
+For production, replace the JSON persistence layer with PostgreSQL/Prisma and set a strong `JWT_SECRET`.
