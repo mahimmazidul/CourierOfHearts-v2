@@ -9,7 +9,6 @@ load_env_file() {
   local file="$1"
   if [[ -f "$file" ]]; then
     set -a
-    # shellcheck disable=SC1090
     source "$file"
     set +a
   fi
@@ -70,6 +69,24 @@ require_path() {
   fi
 }
 
+ensure_command() {
+  local cmd="$1"
+  local package_name="$2"
+  if command -v "$cmd" >/dev/null 2>&1; then
+    return
+  fi
+
+  if command -v apt-get >/dev/null 2>&1; then
+    echo "==> Installing missing dependency: ${package_name}"
+    sudo apt-get update
+    sudo apt-get install -y "$package_name"
+    return
+  fi
+
+  echo "Missing required command '${cmd}'. Please install package '${package_name}' and run deploy.sh again."
+  exit 1
+}
+
 save_deploy_env() {
   cat > "$DEPLOY_ENV_FILE" <<EOF
 DOMAIN=${DOMAIN}
@@ -83,6 +100,7 @@ LETTER_MASTER_KEY=${LETTER_MASTER_KEY}
 ADMIN_API_ENABLED=${ADMIN_API_ENABLED}
 ADMIN_MASTER_KEY=${ADMIN_MASTER_KEY}
 MYSQL_MIRROR_URL=${MYSQL_MIRROR_URL}
+LEGACY_JSON_SOURCE=${LEGACY_JSON_SOURCE}
 VITE_ENABLE_ADMIN_PANEL=${VITE_ENABLE_ADMIN_PANEL}
 VITE_ADMIN_ROUTE=${VITE_ADMIN_ROUTE}
 ENABLE_UFW=${ENABLE_UFW}
@@ -114,6 +132,7 @@ else
   VITE_ENABLE_ADMIN_PANEL="false"
 fi
 prompt_value MYSQL_MIRROR_URL "Optional MySQL/MariaDB mirror DSN (leave blank to skip)" ""
+prompt_value LEGACY_JSON_SOURCE "Optional path to old letters.json on this machine (leave blank to skip copy)" ""
 prompt_bool ENABLE_UFW "Apply simple UFW firewall rules (22/80/443 only)" "true"
 prompt_value CERTBOT_EMAIL "Certbot email (optional, leave blank to skip TLS setup)" ""
 
@@ -138,6 +157,20 @@ require_path "$REPO_ROOT/package.json" "package.json"
 require_path "$REPO_ROOT/server" "server directory"
 require_path "$REPO_ROOT/scripts" "scripts directory"
 
+ensure_command rsync rsync
+ensure_command curl curl
+ensure_command nginx nginx
+ensure_command systemctl systemd
+if [[ -n "$CERTBOT_EMAIL" || -z "$CERTBOT_EMAIL" ]]; then
+  if ! command -v certbot >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+      echo "==> Installing certbot and nginx plugin"
+      sudo apt-get update
+      sudo apt-get install -y certbot python3-certbot-nginx
+    fi
+  fi
+fi
+
 echo "==> Installing dependencies"
 npm ci
 
@@ -159,6 +192,15 @@ sudo rsync -a --delete "$REPO_ROOT/dist/" "$APP_ROOT/"
 
 echo "==> Syncing backend from cloned repo"
 sudo rsync -a "$REPO_ROOT/package.json" "$REPO_ROOT/package-lock.json" "$REPO_ROOT/node_modules" "$REPO_ROOT/server" "$REPO_ROOT/scripts" "$PUBLIC_ROOT/"
+
+if [[ -n "$LEGACY_JSON_SOURCE" ]]; then
+  if [[ ! -f "$LEGACY_JSON_SOURCE" ]]; then
+    echo "Legacy JSON source not found: $LEGACY_JSON_SOURCE"
+    exit 1
+  fi
+  echo "==> Copying legacy JSON from ${LEGACY_JSON_SOURCE} to ${PUBLIC_ROOT}/server/data/letters.json"
+  sudo install -m 640 "$LEGACY_JSON_SOURCE" "${PUBLIC_ROOT}/server/data/letters.json"
+fi
 
 if sudo test -f "${PUBLIC_ROOT}/server/data/letters.json"; then
   echo "==> Found legacy JSON file at ${PUBLIC_ROOT}/server/data/letters.json"
@@ -277,6 +319,8 @@ server {
 EOF
 
 sudo ln -sf "$NGINX_FILE" "/etc/nginx/sites-enabled/${APP_NAME}.conf"
+sudo rm -f /etc/nginx/sites-enabled/default || true
+
 if [[ "$ENABLE_UFW" == "true" ]] && command -v ufw >/dev/null 2>&1; then
   echo "==> Applying UFW baseline"
   sudo ufw allow OpenSSH || true
@@ -287,14 +331,30 @@ fi
 
 sudo nginx -t
 sudo systemctl daemon-reload
+sudo systemctl enable --now nginx
+sudo systemctl restart nginx
 sudo systemctl enable --now "${APP_NAME}-api.service"
 sudo systemctl enable --now "${APP_NAME}-backup.timer"
 sudo systemctl restart "${APP_NAME}-api.service"
 sudo systemctl reload nginx
 
-if [[ -n "$CERTBOT_EMAIL" ]] && command -v certbot >/dev/null 2>&1; then
+if command -v certbot >/dev/null 2>&1; then
   echo "==> Requesting TLS certificate via certbot"
-  sudo certbot --nginx "${CERTBOT_DOMAINS[@]}" --non-interactive --agree-tos -m "$CERTBOT_EMAIL" --redirect || true
+  if [[ -n "$CERTBOT_EMAIL" ]]; then
+    sudo certbot --nginx "${CERTBOT_DOMAINS[@]}" --non-interactive --agree-tos -m "$CERTBOT_EMAIL" --redirect || true
+  else
+    sudo certbot --nginx "${CERTBOT_DOMAINS[@]}" --non-interactive --agree-tos --register-unsafely-without-email --redirect || true
+  fi
+fi
+
+echo "==> Local verification"
+HTTP_OK="no"
+HTTPS_OK="no"
+if curl --resolve "${DOMAIN}:80:127.0.0.1" -I "http://${DOMAIN}" --max-time 10 >/tmp/${APP_NAME}-http-check.log 2>&1; then
+  HTTP_OK="yes"
+fi
+if curl --resolve "${DOMAIN}:443:127.0.0.1" -k -I "https://${DOMAIN}" --max-time 10 >/tmp/${APP_NAME}-https-check.log 2>&1; then
+  HTTPS_OK="yes"
 fi
 
 echo
@@ -313,11 +373,17 @@ printf '%s
 printf '%s
 ' "Legacy JSON path: ${PUBLIC_ROOT}/server/data/letters.json"
 printf '%s
+' "Legacy JSON source used: ${LEGACY_JSON_SOURCE:-none}"
+printf '%s
 ' "MySQL/MariaDB mirror enabled: $([[ -n "${MYSQL_MIRROR_URL}" ]] && echo yes || echo no)"
 printf '%s
 ' "Admin panel enabled: ${VITE_ENABLE_ADMIN_PANEL}"
 printf '%s
 ' "Admin route: /#/${VITE_ADMIN_ROUTE}"
+printf '%s
+' "Local HTTP check: ${HTTP_OK}"
+printf '%s
+' "Local HTTPS check: ${HTTPS_OK}"
 printf '%s
 ' "Saved deploy answers to: ${DEPLOY_ENV_FILE}"
 printf '%s
@@ -326,3 +392,7 @@ printf '%s
 ' "Admin letter dump: npm run letters:admin -- --full"
 printf '%s
 ' "Backups: systemctl status ${APP_NAME}-backup.timer"
+if [[ "$HTTP_OK" != "yes" || "$HTTPS_OK" != "yes" ]]; then
+  printf '%s
+' "Warning: local domain verification did not fully pass. Check nginx, firewall, cloud VPS security groups, and DNS propagation."
+fi
