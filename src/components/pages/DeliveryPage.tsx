@@ -80,17 +80,31 @@ function ReadingView({ letter, onBack }: { letter: Letter; onBack: () => void })
   const [typingDone, setTypingDone] = useState(false);
   const [showAllPages, setShowAllPages] = useState(false);
   const safeContent = useMemo(() => sanitizeLetterHtml(letter.content), [letter.content]);
-  const printPages = useMemo(() => isRichContent ? splitRichLetterHtmlIntoPages(safeContent) : splitPlainTextIntoPages(letter.content), [letter.content, isRichContent, safeContent]);
-  const printRenderedPages = useMemo(() => printPages.map((page) => isRichContent ? decorateLetterHtml(page) : decoratePlainLetterText(page)), [isRichContent, printPages]);
-  const fullBodyHtml = useMemo(() => isRichContent ? decorateLetterHtml(safeContent) : decoratePlainLetterText(letter.content), [isRichContent, letter.content, safeContent]);
+  const plainBody = useMemo(() => htmlToPlainText(safeContent).toLowerCase(), [safeContent]);
   const sal = letter.salutation || '';
   const cls = letter.closing || '';
+  const recipient = letter.recipient || '';
+
+  const hasDuplicateSalutation = useMemo(() => {
+    if (!sal && !recipient) return false;
+    const combined = `${sal} ${recipient}`.toLowerCase().trim();
+    const combinedComma = `${combined},`.toLowerCase().trim();
+    const lines = plainBody.split('\n');
+    const firstLine = (lines[0] || '').trim();
+    const secondLine = (lines[1] || '').trim();
+    return firstLine.includes(combined) || combined.includes(firstLine) || firstLine.includes(combinedComma) ||
+           secondLine.includes(combined) || combined.includes(secondLine) || secondLine.includes(combinedComma);
+  }, [sal, recipient, plainBody]);
+
+  const printPages = useMemo(() => isRichContent ? splitRichLetterHtmlIntoPages(safeContent) : splitPlainTextIntoPages(letter.content), [letter.content, isRichContent, safeContent]);
+  const printRenderedPages = useMemo(() => {
+    return printPages.map((page) => isRichContent ? decorateLetterHtml(page) : decoratePlainLetterText(page));
+  }, [isRichContent, printPages]);
+
   const firstPageHtml = useMemo(() => {
-    const salutationHtml = (sal || letter.recipient)
-      ? `<p><em>${sal ? `<span style="font-family: ${getFontFamilyByChoice(letter.salutationFont || letter.bodyFont)};">${escapeLetterHtml(sal)}</span>` : ''}${sal && letter.recipient ? ' ' : ''}${letter.recipient ? `<span style="font-family: ${getFontFamilyByChoice(letter.recipientFont || letter.bodyFont)};">${escapeLetterHtml(letter.recipient)}</span>` : ''}${letter.recipient ? ',' : ''}</em></p><br>`
-      : '';
-    return `${salutationHtml}${isRichContent ? safeContent : plainTextToLetterHtml(letter.content)}`;
-  }, [isRichContent, letter.bodyFont, letter.content, letter.recipient, letter.recipientFont, letter.salutationFont, safeContent, sal]);
+    const pages = isRichContent ? splitRichLetterHtmlIntoPages(safeContent) : splitPlainTextIntoPages(letter.content);
+    return pages[0] || '';
+  }, [isRichContent, letter.content, safeContent]);
 
   useEffect(() => {
     setTypingDone(false);
@@ -145,12 +159,12 @@ function ReadingView({ letter, onBack }: { letter: Letter; onBack: () => void })
   }
 
   const headerLine = (
-    (sal || letter.recipient) ? (
+    (!hasDuplicateSalutation && (sal || recipient)) ? (
       <p className="ink-fade-in-delayed ink-engraved mb-2 md:mb-3 text-[17px] md:text-[18px] italic" style={{ lineHeight: LETTER_UI.lineHeight }}>
         {sal && <span style={{ fontFamily: getFontFamilyByChoice(letter.salutationFont || letter.bodyFont) }}>{sal}</span>}
-        {sal && letter.recipient ? ' ' : ''}
-        {letter.recipient && <span style={{ fontFamily: getFontFamilyByChoice(letter.recipientFont || letter.bodyFont) }}>{letter.recipient}</span>}
-        {letter.recipient ? ',' : ''}
+        {sal && recipient ? ' ' : ''}
+        {recipient && <span style={{ fontFamily: getFontFamilyByChoice(letter.recipientFont || letter.bodyFont) }}>{recipient}</span>}
+        {recipient ? ',' : ''}
       </p>
     ) : null
   );
@@ -182,43 +196,39 @@ function ReadingView({ letter, onBack }: { letter: Letter; onBack: () => void })
         <button onClick={handlePrint} className="font-heading text-[11px] tracking-[0.12em] text-ink/70 uppercase hover:text-ink transition-colors duration-500">Print</button>
       </nav>
       <div className="max-w-3xl mx-auto px-4 py-8 md:py-12 relative z-10">
-        <article className="screen-only relative letter-paper rounded-sm mb-8" style={{ padding: 'clamp(28px, 6vw, 56px)', minHeight: '500px' }}>
-          <div className="absolute top-0 left-0 pointer-events-none z-10"><CornerOrnament position="top-left" color="#8b7340" /></div>
-          <div className="absolute top-0 right-0 pointer-events-none z-10"><CornerOrnament position="top-right" color="#8b7340" /></div>
-          <div className="absolute bottom-0 left-0 pointer-events-none z-10"><CornerOrnament position="bottom-left" color="#8b7340" /></div>
-          <div className="absolute bottom-0 right-0 pointer-events-none z-10"><CornerOrnament position="bottom-right" color="#8b7340" /></div>
-          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-sm" style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0px, transparent 1.85em, rgba(100,80,40,0.04) 1.85em, rgba(100,80,40,0.04) 1.86em)', backgroundSize: '100% 1.9em', backgroundPosition: '0 48px' }} />
+        {!typingDone && (
+          <article className="screen-only relative letter-paper rounded-sm mb-8" style={{ padding: 'clamp(28px, 6vw, 56px)', minHeight: '500px' }}>
+            <div className="absolute top-0 left-0 pointer-events-none z-10"><CornerOrnament position="top-left" color="#8b7340" /></div>
+            <div className="absolute top-0 right-0 pointer-events-none z-10"><CornerOrnament position="top-right" color="#8b7340" /></div>
+            <div className="absolute bottom-0 left-0 pointer-events-none z-10"><CornerOrnament position="bottom-left" color="#8b7340" /></div>
+            <div className="absolute bottom-0 right-0 pointer-events-none z-10"><CornerOrnament position="bottom-right" color="#8b7340" /></div>
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-sm" style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0px, transparent 1.85em, rgba(100,80,40,0.04) 1.85em, rgba(100,80,40,0.04) 1.86em)', backgroundSize: '100% 1.9em', backgroundPosition: '0 48px' }} />
 
-          <div className="relative z-10">
-            {letter.letterDate && <p className="text-right font-display text-sm italic text-ink/45 mb-2 md:mb-3">{letter.letterDate}</p>}
-            {letter.customInitials && <div className="text-center mb-1 md:mb-2 ink-fade-in"><span className="font-uncial text-4xl md:text-5xl tracking-[0.12em] text-burgundy/35 select-none">{letter.customInitials}</span></div>}
-            {letter.crest !== 'none' && <div className="flex justify-center mb-2 md:mb-3 ink-fade-in"><CrestDecoration type={letter.crest} /></div>}
-            <div className="ink-fade-in"><OrnamentDivider className="w-24 md:w-32 mx-auto mb-2 md:mb-3" color="#8b7340" /></div>
-            {headerLine}
-          </div>
-
-          <div className="relative z-10 letter-flow" style={{ fontFamily: getFontFamilyByChoice(letter.bodyFont), fontSize: `clamp(${LETTER_UI.bodyFontSize}px, 1.2vw + 13px, ${LETTER_UI.bodyFontSizeMd}px)`, lineHeight: LETTER_UI.lineHeight, whiteSpace: 'pre-wrap' }}>
-            <AnimatedLetterHtml html={firstPageHtml} fontFamily={getFontFamilyByChoice(letter.bodyFont)} onDone={() => setTypingDone(true)} />
-          </div>
-
-          {typingDone && (
-            <div className="relative z-10 ink-fade-in mt-8">
-              <div className="text-right space-y-1">
-                {cls ? <p className="text-base ink-engraved" style={{ fontFamily: getFontFamilyByChoice(letter.closingFont || letter.bodyFont) }}>{cls}</p> : null}
-                <p className="text-2xl md:text-3xl ink-engraved" style={{ fontFamily: getSigFontFamilyByChoice(letter.signatureFont) }}>{letter.signature}</p>
-              </div>
-              <div className="print-hide-seal flex justify-center mt-6"><WaxSealIcon sealType={letter.sealType} sealColor={letter.sealColor} customInitials={letter.customInitials} size={60} /></div>
+            <div className="relative z-10">
+              {letter.letterDate && <p className="text-right font-display text-sm italic text-ink/45 mb-2 md:mb-3">{letter.letterDate}</p>}
+              {letter.customInitials && <div className="text-center mb-1 md:mb-2 ink-fade-in"><span className="font-uncial text-4xl md:text-5xl tracking-[0.12em] text-burgundy/35 select-none">{letter.customInitials}</span></div>}
+              {letter.crest !== 'none' && <div className="flex justify-center mb-2 md:mb-3 ink-fade-in"><CrestDecoration type={letter.crest} /></div>}
+              <div className="ink-fade-in"><OrnamentDivider className="w-24 md:w-32 mx-auto mb-2 md:mb-3" color="#8b7340" /></div>
+              {headerLine}
             </div>
-          )}
 
-          {flowersLayer(LETTER_UI.readingFlowerOpacity)}
-        </article>
+            <div className="relative z-10 letter-flow" style={{ fontFamily: getFontFamilyByChoice(letter.bodyFont), fontSize: `clamp(${LETTER_UI.bodyFontSize}px, 1.2vw + 13px, ${LETTER_UI.bodyFontSizeMd}px)`, lineHeight: LETTER_UI.lineHeight, whiteSpace: 'pre-wrap' }}>
+              <AnimatedLetterHtml html={firstPageHtml} fontFamily={getFontFamilyByChoice(letter.bodyFont)} onDone={() => setTypingDone(true)} />
+            </div>
+
+            {flowersLayer(LETTER_UI.readingFlowerOpacity)}
+          </article>
+        )}
 
         {(typingDone || showAllPages) && (
-          <div className="print-only">
+          <div className={`${showAllPages ? '' : 'fade-slide-up'}`}>
             {printRenderedPages.map((pageHtml, pi) => (
-              <article key={pi} className="print-letter relative letter-paper rounded-sm mb-8 last:mb-0"
-                style={{ padding: 'clamp(28px, 6vw, 56px)', minHeight: '500px', pageBreakAfter: pi < printRenderedPages.length - 1 ? 'always' : 'auto' }}>
+              <article key={pi} className={`relative letter-paper rounded-sm mb-8 last:mb-0 ${showAllPages ? 'print-letter' : 'screen-only'}`}
+                style={{ 
+                  padding: showAllPages ? undefined : 'clamp(28px, 6vw, 56px)', 
+                  minHeight: showAllPages ? undefined : '500px',
+                  pageBreakAfter: pi < printRenderedPages.length - 1 ? 'always' : 'auto' 
+                }}>
                 <div className="print-border hidden absolute inset-5 md:inset-7 pointer-events-none rounded-sm" />
                 <div className="absolute top-0 left-0 pointer-events-none z-10"><CornerOrnament position="top-left" color="#8b7340" /></div>
                 <div className="absolute top-0 right-0 pointer-events-none z-10"><CornerOrnament position="top-right" color="#8b7340" /></div>
@@ -244,6 +254,7 @@ function ReadingView({ letter, onBack }: { letter: Letter; onBack: () => void })
                       {cls ? <p className="text-base ink-engraved" style={{ fontFamily: getFontFamilyByChoice(letter.closingFont || letter.bodyFont) }}>{cls}</p> : null}
                       <p className="text-2xl md:text-3xl ink-engraved" style={{ fontFamily: getSigFontFamilyByChoice(letter.signatureFont) }}>{letter.signature}</p>
                     </div>
+                    <div className="print-hide-seal flex justify-center mt-6"><WaxSealIcon sealType={letter.sealType} sealColor={letter.sealColor} customInitials={letter.customInitials} size={60} /></div>
                   </div>
                 )}
 

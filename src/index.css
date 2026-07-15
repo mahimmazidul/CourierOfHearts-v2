@@ -278,8 +278,9 @@ select,
 
 .rich-letter-content,
 .letter-flow {
-  overflow-wrap: break-word;
-  word-break: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-break: loose;
 }
 
 .emoji-sigil,
@@ -323,13 +324,14 @@ select,
   .print-letter {
     page-break-inside: avoid;
     break-inside: avoid;
+    page-break-after: always;
     box-sizing: border-box;
-    width: 181mm;
-    min-height: 252mm;
-    margin: 0 auto 4mm !important;
-    padding: 10mm 14mm;
-    background-color: #d4c5a0 !important;
-    border: 2px solid rgba(139,115,64,0.3);
+    width: 190mm;
+    height: 270mm;
+    margin: 0 auto !important;
+    padding: 20mm 20mm !important;
+    background-color: #cfc098 !important;
+    border: 1px solid rgba(139,115,64,0.2);
     box-shadow: none !important;
     position: relative;
     color: #1a1208 !important;

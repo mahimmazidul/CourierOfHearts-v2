@@ -45,10 +45,19 @@ export default function LetterPreview({
 }: LetterPreviewProps) {
   const isRichContent = hasRichLetterHtml(content);
   const safeContent = useMemo(() => sanitizeLetterHtml(content), [content]);
-  const screenHtml = useMemo(
-    () => isRichContent ? decorateLetterHtml(safeContent) : decoratePlainLetterText(content),
-    [content, isRichContent, safeContent],
-  );
+  const plainBody = useMemo(() => htmlToPlainText(safeContent).toLowerCase(), [safeContent]);
+
+  const hasDuplicateSalutation = useMemo(() => {
+    if (!salutation && !recipient) return false;
+    const combined = `${salutation} ${recipient}`.toLowerCase().trim();
+    const combinedComma = `${combined},`.toLowerCase().trim();
+    const lines = plainBody.split('\n');
+    const firstLine = (lines[0] || '').trim();
+    const secondLine = (lines[1] || '').trim();
+    return firstLine.includes(combined) || combined.includes(firstLine) || firstLine.includes(combinedComma) ||
+           secondLine.includes(combined) || combined.includes(secondLine) || secondLine.includes(combinedComma);
+  }, [salutation, recipient, plainBody]);
+
   const printPages = useMemo(() => {
     const pages = isRichContent ? splitRichLetterHtmlIntoPages(safeContent) : splitPlainTextIntoPages(content);
     return pages.map((pageContent) => isRichContent ? decorateLetterHtml(pageContent) : decoratePlainLetterText(pageContent));
@@ -65,7 +74,7 @@ export default function LetterPreview({
   });
 
   const headerLine = (
-    (salutation || recipient) ? (
+    (!hasDuplicateSalutation && (salutation || recipient)) ? (
       <p className="text-lg md:text-xl italic mb-3 md:mb-4 ink-fade-in-delayed relative z-10 ink-engraved">
         {salutation && <span style={{ fontFamily: getFontFamilyByChoice(salutationFont) }}>{salutation}</span>}
         {salutation && recipient ? ' ' : ''}
@@ -106,101 +115,67 @@ export default function LetterPreview({
         <button onClick={() => window.print()} className="font-heading text-[10px] tracking-[0.12em] text-ink/70 uppercase hover:text-ink transition-colors duration-500">Print</button>
       </nav>
 
-      <div className="max-w-3xl mx-auto px-4 py-8 md:py-12 relative z-10">
-        <article className="screen-only relative letter-paper rounded-sm mb-8"
-          style={{ padding: 'clamp(32px, 6vw, 64px)', minHeight: '600px' }}>
-          <div className="absolute top-0 left-0 pointer-events-none z-10"><CornerOrnament position="top-left" color="#8b7340" /></div>
-          <div className="absolute top-0 right-0 pointer-events-none z-10"><CornerOrnament position="top-right" color="#8b7340" /></div>
-          <div className="absolute bottom-0 left-0 pointer-events-none z-10"><CornerOrnament position="bottom-left" color="#8b7340" /></div>
-          <div className="absolute bottom-0 right-0 pointer-events-none z-10"><CornerOrnament position="bottom-right" color="#8b7340" /></div>
-          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-sm"
-            style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0px, transparent 1.85em, rgba(100,80,40,0.04) 1.85em, rgba(100,80,40,0.04) 1.86em)', backgroundSize: '100% 1.9em', backgroundPosition: '0 48px' }} />
+        <div className="max-w-3xl mx-auto px-4 py-8 md:py-12 relative z-10">
+          <div className={`${readOnly ? '' : 'fade-slide-up'}`}>
+            {printPages.map((pageContent, pi) => (
+              <article key={pi} className={`relative letter-paper rounded-sm mb-8 last:mb-0 ${window.matchMedia('print').matches ? 'print-letter' : ''}`}
+                style={{ 
+                  padding: 'clamp(32px, 6vw, 64px)', 
+                  minHeight: '600px',
+                  pageBreakAfter: pi < printPages.length - 1 ? 'always' : 'auto' 
+                }}>
+                <div className="print-border hidden absolute inset-5 md:inset-7 pointer-events-none rounded-sm" />
+                <div className="absolute top-0 left-0 pointer-events-none z-10"><CornerOrnament position="top-left" color="#8b7340" /></div>
+                <div className="absolute top-0 right-0 pointer-events-none z-10"><CornerOrnament position="top-right" color="#8b7340" /></div>
+                <div className="absolute bottom-0 left-0 pointer-events-none z-10"><CornerOrnament position="bottom-left" color="#8b7340" /></div>
+                <div className="absolute bottom-0 right-0 pointer-events-none z-10"><CornerOrnament position="bottom-right" color="#8b7340" /></div>
+                <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-sm"
+                  style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0px, transparent 1.85em, rgba(100,80,40,0.04) 1.85em, rgba(100,80,40,0.04) 1.86em)', backgroundSize: '100% 1.9em', backgroundPosition: '0 48px' }} />
 
-          <div className="relative z-10">
-            {letterDate && <p className="text-right font-display text-sm italic text-ink/45 mb-2 md:mb-3">{letterDate}</p>}
-            {customInitials && <div className="text-center mb-1 md:mb-2 ink-fade-in"><span className="font-uncial text-4xl md:text-5xl tracking-[0.12em] text-burgundy/35 select-none">{customInitials}</span></div>}
-            {crest !== 'none' && <div className="flex justify-center mb-2 md:mb-3 ink-fade-in"><CrestDecoration type={crest} /></div>}
-            <div className="ink-fade-in"><OrnamentDivider className="w-24 md:w-32 mx-auto mb-3 md:mb-4" color="#8b7340" /></div>
-            {headerLine}
-          </div>
-
-          <div className="rich-letter-content letter-flow relative z-10 ink-fade-in-delayed ink-engraved"
-            style={{
-              fontFamily: getFontFamilyByChoice(bodyFont),
-              fontSize: `clamp(${LETTER_UI.bodyFontSize}px, 1.2vw + 13px, ${LETTER_UI.bodyFontSizeMd}px)`,
-              lineHeight: LETTER_UI.lineHeight,
-              letterSpacing: '0.01em',
-              wordSpacing: '0.04em',
-              whiteSpace: 'pre-wrap',
-            }}
-            dangerouslySetInnerHTML={{ __html: screenHtml }} />
-
-          <div className="relative z-10 mt-8 ink-fade-in-delayed-2">
-            <div className="text-right space-y-1">
-              {closing ? <p className="text-base ink-engraved" style={{ fontFamily: getFontFamilyByChoice(closingFont) }}>{closing}</p> : null}
-              <p className="text-2xl md:text-3xl ink-engraved" style={{ fontFamily: getSigFontFamilyByChoice(signatureFont) }}>{signature}</p>
-            </div>
-            <div className="print-hide-seal flex justify-center mt-6"><WaxSealIcon sealType={sealType} sealColor={sealColor} customInitials={customInitials} size={70} /></div>
-          </div>
-
-          {flowersLayer(LETTER_UI.previewFlowerOpacity)}
-        </article>
-
-        <div className="print-only">
-          {printPages.map((pageContent, pi) => (
-            <article key={pi} className="print-letter relative letter-paper rounded-sm mb-8 last:mb-0"
-              style={{ padding: 'clamp(32px, 6vw, 64px)', minHeight: '600px', pageBreakAfter: pi < printPages.length - 1 ? 'always' : 'auto' }}>
-              <div className="print-border hidden absolute inset-5 md:inset-7 pointer-events-none rounded-sm" />
-              <div className="absolute top-0 left-0 pointer-events-none z-10"><CornerOrnament position="top-left" color="#8b7340" /></div>
-              <div className="absolute top-0 right-0 pointer-events-none z-10"><CornerOrnament position="top-right" color="#8b7340" /></div>
-              <div className="absolute bottom-0 left-0 pointer-events-none z-10"><CornerOrnament position="bottom-left" color="#8b7340" /></div>
-              <div className="absolute bottom-0 right-0 pointer-events-none z-10"><CornerOrnament position="bottom-right" color="#8b7340" /></div>
-              <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-sm"
-                style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0px, transparent 1.85em, rgba(100,80,40,0.04) 1.85em, rgba(100,80,40,0.04) 1.86em)', backgroundSize: '100% 1.9em', backgroundPosition: '0 48px' }} />
-
-              {pi === 0 && (
-                <div className="relative z-10">
-                  {letterDate && <p className="text-right font-display text-sm italic text-ink/45 mb-2 md:mb-3">{letterDate}</p>}
-                  {customInitials && <div className="text-center mb-1 md:mb-2"><span className="font-uncial text-4xl md:text-5xl tracking-[0.12em] text-burgundy/35 select-none">{customInitials}</span></div>}
-                  {crest !== 'none' && <div className="flex justify-center mb-2 md:mb-3"><CrestDecoration type={crest} /></div>}
-                  <div><OrnamentDivider className="w-24 md:w-32 mx-auto mb-3 md:mb-4" color="#8b7340" /></div>
-                  {headerLine}
-                </div>
-              )}
-
-              <div className="rich-letter-content letter-flow relative z-10 ink-engraved"
-                style={{
-                  fontFamily: getFontFamilyByChoice(bodyFont),
-                  fontSize: `clamp(${LETTER_UI.bodyFontSize}px, 1.2vw + 13px, ${LETTER_UI.bodyFontSizeMd}px)`,
-                  lineHeight: LETTER_UI.lineHeight,
-                  letterSpacing: '0.01em',
-                  wordSpacing: '0.04em',
-                  whiteSpace: 'pre-wrap',
-                }}
-                dangerouslySetInnerHTML={{ __html: pageContent }} />
-
-              {pi === printPages.length - 1 && (
-                <div className="relative z-10 mt-8">
-                  <div className="text-right space-y-1">
-                    {closing ? <p className="text-base ink-engraved" style={{ fontFamily: getFontFamilyByChoice(closingFont) }}>{closing}</p> : null}
-                    <p className="text-2xl md:text-3xl ink-engraved" style={{ fontFamily: getSigFontFamilyByChoice(signatureFont) }}>{signature}</p>
+                {pi === 0 && (
+                  <div className="relative z-10">
+                    {letterDate && <p className="text-right font-display text-sm italic text-ink/45 mb-2 md:mb-3">{letterDate}</p>}
+                    {customInitials && <div className="text-center mb-1 md:mb-2 ink-fade-in"><span className="font-uncial text-4xl md:text-5xl tracking-[0.12em] text-burgundy/35 select-none">{customInitials}</span></div>}
+                    {crest !== 'none' && <div className="flex justify-center mb-2 md:mb-3 ink-fade-in"><CrestDecoration type={crest} /></div>}
+                    <div className="ink-fade-in"><OrnamentDivider className="w-24 md:w-32 mx-auto mb-3 md:mb-4" color="#8b7340" /></div>
+                    {headerLine}
                   </div>
-                </div>
-              )}
+                )}
 
-              {printPages.length > 1 && <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10"><span className="font-heading text-[9px] tracking-[0.2em] text-ink/35 uppercase">{pi + 1} of {printPages.length}</span></div>}
-              {flowersLayer(LETTER_UI.previewFlowerOpacity)}
-            </article>
-          ))}
-        </div>
+                <div className="rich-letter-content letter-flow relative z-10 ink-fade-in-delayed ink-engraved"
+                  style={{
+                    fontFamily: getFontFamilyByChoice(bodyFont),
+                    fontSize: `clamp(${LETTER_UI.bodyFontSize}px, 1.2vw + 13px, ${LETTER_UI.bodyFontSizeMd}px)`,
+                    lineHeight: LETTER_UI.lineHeight,
+                    letterSpacing: '0.01em',
+                    wordSpacing: '0.04em',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                  dangerouslySetInnerHTML={{ __html: pageContent }} />
 
-        {!readOnly && onSend && (
-          <div className="no-print flex flex-col items-center gap-3 mt-6">
-            <button onClick={onSend} disabled={sending} className="font-heading text-[11px] tracking-[0.18em] uppercase py-4 px-14 bg-ink text-parchment-light rounded-sm transition-all duration-500 hover:bg-ink-light disabled:opacity-40" style={{ boxShadow: '0 3px 15px rgba(0,0,0,0.2)' }}>{sending ? 'Sealing...' : 'Seal & Send'}</button>
-            <button onClick={onBack} className="font-heading text-[10px] uppercase py-2 px-6 text-ink/45 hover:text-ink/70 transition-colors duration-500">Continue editing</button>
+                {pi === printPages.length - 1 && (
+                  <div className="relative z-10 mt-8 ink-fade-in-delayed-2">
+                    <div className="text-right space-y-1">
+                      {closing ? <p className="text-base ink-engraved" style={{ fontFamily: getFontFamilyByChoice(closingFont) }}>{closing}</p> : null}
+                      <p className="text-2xl md:text-3xl ink-engraved" style={{ fontFamily: getSigFontFamilyByChoice(signatureFont) }}>{signature}</p>
+                    </div>
+                    <div className="print-hide-seal flex justify-center mt-6"><WaxSealIcon sealType={sealType} sealColor={sealColor} customInitials={customInitials} size={70} /></div>
+                  </div>
+                )}
+
+                {printPages.length > 1 && <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10"><span className="font-heading text-[9px] tracking-[0.2em] text-ink/35 uppercase">{pi + 1} of {printPages.length}</span></div>}
+                {flowersLayer(LETTER_UI.previewFlowerOpacity)}
+              </article>
+            ))}
           </div>
-        )}
-      </div>
+
+          {!readOnly && onSend && (
+            <div className="no-print flex flex-col items-center gap-3 mt-6">
+              <button onClick={onSend} disabled={sending} className="font-heading text-[11px] tracking-[0.18em] uppercase py-4 px-14 bg-ink text-parchment-light rounded-sm transition-all duration-500 hover:bg-ink-light disabled:opacity-40" style={{ boxShadow: '0 3px 15px rgba(0,0,0,0.2)' }}>{sending ? 'Sealing...' : 'Seal & Send'}</button>
+              <button onClick={onBack} className="font-heading text-[10px] uppercase py-2 px-6 text-ink/45 hover:text-ink/70 transition-colors duration-500">Continue editing</button>
+            </div>
+          )}
+        </div>
     </div>
   );
 }

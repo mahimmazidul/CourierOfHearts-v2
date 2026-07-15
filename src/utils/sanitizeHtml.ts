@@ -126,10 +126,26 @@ export function hasRichLetterHtml(content: string): boolean {
 
 export function htmlToPlainText(content: string): string {
   if (!content) return '';
-  if (!isBrowser()) return content.replace(/<[^>]+>/g, ' ');
+  if (!isBrowser()) return content.replace(/<[^>]+>/g, ' ').trim();
   const el = document.createElement('div');
   el.innerHTML = sanitizeLetterHtml(content);
-  return el.textContent || '';
+
+  // Improved plain text conversion to include spaces between block elements
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  let text = '';
+  let current = walker.nextNode();
+  while (current) {
+    if (current.nodeType === Node.TEXT_NODE) {
+      text += current.textContent || '';
+    } else {
+      const tag = (current as HTMLElement).tagName;
+      if (tag === 'BR' || tag === 'P' || tag === 'DIV') {
+        if (text && !text.endsWith('\n')) text += '\n';
+      }
+    }
+    current = walker.nextNode();
+  }
+  return text.trim();
 }
 
 export function escapeLetterHtml(text: string): string {
@@ -153,16 +169,20 @@ function htmlLengthFromNode(node: Node): number {
   if (node.nodeType === Node.TEXT_NODE) return (node.textContent || '').length;
   if (node.nodeType !== Node.ELEMENT_NODE) return 0;
   const element = node as HTMLElement;
-  if (element.tagName === 'BR') return 1;
+  const tag = element.tagName;
+  if (tag === 'BR' || tag === 'P' || tag === 'DIV') {
+    // Treat block elements and BR as 1 character (like a newline)
+    return 1 + Array.from(element.childNodes).reduce((sum, child) => sum + htmlLengthFromNode(child), 0);
+  }
   return Array.from(element.childNodes).reduce((sum, child) => sum + htmlLengthFromNode(child), 0);
 }
 
 export function richHtmlTextLength(html: string): number {
   if (!html) return 0;
-  if (!isBrowser()) return html.replace(/<[^>]+>/g, '').length;
+  if (!isBrowser()) return Array.from(html.replace(/<[^>]+>/g, '')).length;
   const el = document.createElement('div');
   el.innerHTML = sanitizeLetterHtml(html);
-  return Array.from(el.childNodes).reduce((sum, child) => sum + htmlLengthFromNode(child), 0);
+  return Array.from(htmlToPlainText(el.innerHTML)).length;
 }
 
 function sliceNode(node: Node, state: { skip: number; remaining: number }): string {
@@ -170,15 +190,16 @@ function sliceNode(node: Node, state: { skip: number; remaining: number }): stri
 
   if (node.nodeType === Node.TEXT_NODE) {
     const text = node.textContent || '';
-    if (state.skip >= text.length) {
-      state.skip -= text.length;
+    const units = Array.from(text);
+    if (state.skip >= units.length) {
+      state.skip -= units.length;
       return '';
     }
     const start = state.skip;
-    const available = text.slice(start, start + state.remaining);
+    const available = units.slice(start, start + state.remaining);
     state.skip = 0;
     state.remaining -= available.length;
-    return escapeHtml(available);
+    return escapeHtml(available.join(''));
   }
 
   if (node.nodeType !== Node.ELEMENT_NODE) return '';
@@ -186,14 +207,14 @@ function sliceNode(node: Node, state: { skip: number; remaining: number }): stri
   const element = node as HTMLElement;
   const tag = element.tagName.toLowerCase();
 
-  if (tag === 'br') {
+  if (tag === 'br' || tag === 'p' || tag === 'div') {
     if (state.skip > 0) {
       state.skip -= 1;
-      return '';
+    } else {
+      if (state.remaining <= 0) return '';
+      state.remaining -= 1;
+      if (tag === 'br') return '<br>';
     }
-    if (state.remaining <= 0) return '';
-    state.remaining -= 1;
-    return '<br>';
   }
 
   let children = '';
@@ -202,10 +223,11 @@ function sliceNode(node: Node, state: { skip: number; remaining: number }): stri
     children += sliceNode(child, state);
   }
 
-  if (!children) return '';
+  if (!children && tag !== 'br') return '';
 
   const style = element.getAttribute('style');
   const styleAttr = style ? ` style="${escapeHtml(style)}"` : '';
+  if (tag === 'br') return '<br>';
   return `<${tag}${styleAttr}>${children}</${tag}>`;
 }
 
@@ -230,59 +252,136 @@ export function sliceRichLetterHtml(html: string, characterCount: number): strin
   return sliceRichLetterHtmlRange(html, 0, characterCount);
 }
 
-function findPageBreakOffset(text: string, charsPerPage: number): number {
-  let bp = text.lastIndexOf('\n\n', charsPerPage);
-  if (bp < charsPerPage * 0.4) bp = text.lastIndexOf('\n', charsPerPage);
-  if (bp < charsPerPage * 0.4) bp = text.lastIndexOf('. ', charsPerPage);
-  if (bp < charsPerPage * 0.35) bp = text.lastIndexOf('! ', charsPerPage);
-  if (bp < charsPerPage * 0.35) bp = text.lastIndexOf('? ', charsPerPage);
-  if (bp < charsPerPage * 0.25) bp = text.lastIndexOf(' ', charsPerPage);
-  if (bp <= 0) bp = charsPerPage;
-  return bp + 1;
+function safeSlice(text: string, start: number, end: number): string {
+  if (typeof Intl !== 'undefined' && (Intl as any).Segmenter) {
+    const segmenter = new (Intl as any).Segmenter();
+    const segments = Array.from(segmenter.segment(text));
+    return segments.slice(start, end).map((s: any) => s.segment).join('');
+  }
+  // Fallback for environments without Segmenter
+  return Array.from(text).slice(start, end).join('');
 }
 
-export function splitPlainTextIntoPages(text: string, charsPerPage = 900): string[] {
-  if (!text || text.length <= charsPerPage) return [text || ''];
+export function splitPlainTextIntoPages(text: string, charsPerPage = 650): string[] {
+  if (!text) return [''];
+  
+  // Use Array.from to correctly handle multi-code-unit characters as single units
+  const units = Array.from(text);
+  if (units.length <= charsPerPage) return [text];
+
   const pages: string[] = [];
-  let remaining = text;
+  let remaining = units;
 
   while (remaining.length > 0) {
     if (remaining.length <= charsPerPage) {
-      pages.push(remaining);
+      pages.push(remaining.join(''));
       break;
     }
-    const nextOffset = findPageBreakOffset(remaining, charsPerPage);
-    pages.push(remaining.slice(0, nextOffset));
-    remaining = remaining.slice(nextOffset).trimStart();
-    if (!remaining) break;
+
+    const chunk = remaining.slice(0, charsPerPage).join('');
+    const nextOffset = findPageBreakOffset(chunk, remaining.slice(charsPerPage).join(''), charsPerPage);
+    
+    // nextOffset is relative to the start of remaining
+    const cut = remaining.slice(0, nextOffset);
+    pages.push(cut.join(''));
+    
+    remaining = remaining.slice(nextOffset);
+    // Trim leading whitespace for the next page, but be careful not to remove meaning
+    while (remaining.length > 0 && (remaining[0] === ' ' || remaining[0] === '\n')) {
+      remaining = remaining.slice(1);
+    }
+    
+    if (pages.length > 20) break; // Safety break
   }
 
   return pages.length ? pages : [''];
 }
 
-export function splitRichLetterHtmlIntoPages(html: string, charsPerPage = 900): string[] {
-  const safeHtml = sanitizeLetterHtml(html);
-  const plain = htmlToPlainText(safeHtml);
-  const totalChars = plain.length;
-  if (!safeHtml || totalChars <= charsPerPage) return [safeHtml || ''];
+function findPageBreakOffset(chunk: string, after: string, charsPerPage: number): number {
+  const units = Array.from(chunk);
+  const len = units.length;
+  const searchRange = Math.floor(len * 0.5);
+  const startSearch = len - searchRange;
 
-  const ranges: Array<[number, number]> = [];
-  let working = plain;
-  let offset = 0;
+  const points = [
+    { p: '\n\n', w: 100 },
+    { p: '\n', w: 80 },
+    { p: '। ', w: 75 },
+    { p: '. ', w: 75 },
+    { p: '।', w: 65 },
+    { p: '.', w: 65 },
+    { p: '! ', w: 65 },
+    { p: '? ', w: 65 },
+    { p: ': ', w: 60 },
+    { p: '; ', w: 60 },
+    { p: ', ', w: 50 },
+    { p: ' ', w: 40 },
+  ];
 
-  while (working.length > 0) {
-    if (working.length <= charsPerPage) {
-      ranges.push([offset, offset + working.length]);
-      break;
+  let bestIndex = -1;
+  let highestWeight = -1;
+
+  for (const { p, w } of points) {
+    const idx = chunk.lastIndexOf(p);
+    if (idx !== -1) {
+      // Find the character index (not byte index)
+      const charIndex = Array.from(chunk.slice(0, idx)).length;
+      if (charIndex >= startSearch) {
+        const posWeight = ((charIndex - startSearch) / searchRange) * 30;
+        const totalWeight = w + posWeight;
+        if (totalWeight > highestWeight) {
+          highestWeight = totalWeight;
+          bestIndex = charIndex + Array.from(p).length;
+        }
+      }
     }
-    const localEnd = findPageBreakOffset(working, charsPerPage);
-    ranges.push([offset, offset + localEnd]);
-    offset += localEnd;
-    working = working.slice(localEnd).trimStart();
-    while (plain[offset] === ' ' || plain[offset] === '\n') offset += 1;
   }
 
-  const pages = ranges.map(([start, end]) => sliceRichLetterHtmlRange(safeHtml, start, end)).filter(Boolean);
+  if (bestIndex !== -1) return bestIndex;
+
+  // Fallback 1: Last space anywhere in the chunk
+  const lastSpaceIdx = chunk.lastIndexOf(' ');
+  if (lastSpaceIdx > 0) {
+    return Array.from(chunk.slice(0, lastSpaceIdx)).length + 1;
+  }
+
+  // Fallback 2: Look forward to the next space (avoid breaking word)
+  const firstSpaceAfter = after.indexOf(' ');
+  if (firstSpaceAfter !== -1) {
+    if (firstSpaceAfter < 150) {
+       return len + Array.from(after.slice(0, firstSpaceAfter)).length + 1;
+    }
+  } else if (after.length > 0 && after.length < 150) {
+    // No more spaces, but the remaining text is short, so just take it all
+    return len + Array.from(after).length;
+  }
+
+  // Fallback 3: Hard cut
+  return len;
+}
+
+export function splitRichLetterHtmlIntoPages(html: string, charsPerPage = 650): string[] {
+  const safeHtml = sanitizeLetterHtml(html);
+  const plain = htmlToPlainText(safeHtml);
+  if (!safeHtml || Array.from(plain).length <= charsPerPage) return [safeHtml || ''];
+
+  const plainPages = splitPlainTextIntoPages(plain, charsPerPage);
+  const pages: string[] = [];
+  let currentPlainOffset = 0;
+
+  for (const pageText of plainPages) {
+    const len = Array.from(pageText).length;
+    const sliced = sliceRichLetterHtmlRange(safeHtml, currentPlainOffset, currentPlainOffset + len);
+    if (sliced) pages.push(sliced);
+    currentPlainOffset += len;
+    
+    // Skip spaces/newlines in the rich HTML to match splitPlainTextIntoPages' trimStart
+    const plainUnits = Array.from(plain);
+    while (currentPlainOffset < plainUnits.length && (plainUnits[currentPlainOffset] === ' ' || plainUnits[currentPlainOffset] === '\n')) {
+      currentPlainOffset++;
+    }
+  }
+
   return pages.length ? pages : [safeHtml || ''];
 }
 
