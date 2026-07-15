@@ -3,6 +3,7 @@ import type { Letter } from '@/types/letter';
 import { listLetters, deleteLetter } from '@/services/api';
 import WaxSealIcon from '@/components/icons/WaxSealIcon';
 import { HeartSigilIcon, OrnamentDivider, EnvelopeIcon } from '@/components/icons/SvgIcons';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 interface MyLettersPageProps {
   onBack: () => void;
@@ -11,6 +12,12 @@ interface MyLettersPageProps {
 }
 
 export default function MyLettersPage({ onBack, onCompose, onPreview }: MyLettersPageProps) {
+  usePageMeta({
+    title: 'My Letters — Courier of Hearts',
+    description: 'Return to your letters, copy their links, and manage the ones you have already sealed.',
+    robots: 'noindex,nofollow',
+  });
+
   const [letters, setLetters] = useState<Letter[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
@@ -85,7 +92,7 @@ export default function MyLettersPage({ onBack, onCompose, onPreview }: MyLetter
                 className="real-paper rounded-sm p-4 md:p-5 flex items-center gap-3 md:gap-5 group transition-all duration-500"
                 style={{ boxShadow: '1px 2px 8px rgba(0,0,0,0.1), 0 0 30px rgba(100,78,40,0.1) inset' }}>
                 <div className="flex-shrink-0">
-                  <WaxSealIcon sealType={letter.sealType} sealColor={letter.sealColor} size={42} />
+                  <WaxSealIcon sealType={letter.sealType} sealColor={letter.sealColor} customInitials={letter.customInitials} size={42} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-display text-base md:text-lg text-ink/85 truncate">To {letter.recipient}</h3>

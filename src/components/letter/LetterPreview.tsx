@@ -5,7 +5,9 @@ import { OrnamentDivider, CornerOrnament } from '@/components/icons/SvgIcons';
 import CrestDecoration from '@/components/letter/CrestDecoration';
 import { ALL_FLOWERS } from '@/components/icons/FlowerSvgs';
 import { getFontFamilyByChoice, getSigFontFamilyByChoice } from '@/components/pages/ComposePage';
-import { hasRichLetterHtml, sanitizeLetterHtml } from '@/utils/sanitizeHtml';
+import { decorateLetterHtml, decoratePlainLetterText, hasRichLetterHtml, sanitizeLetterHtml, splitPlainTextIntoPages, splitRichLetterHtmlIntoPages } from '@/utils/sanitizeHtml';
+import { LETTER_UI } from '@/config/ui';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 interface LetterPreviewProps {
   salutation?: string;
@@ -17,7 +19,11 @@ interface LetterPreviewProps {
   sealColor: SealColor;
   crest: CrestType;
   customInitials?: string;
+  letterDate?: string;
   bodyFont?: FontChoice;
+  salutationFont?: FontChoice;
+  recipientFont?: FontChoice;
+  closingFont?: FontChoice;
   signatureFont?: SignatureFont;
   flowers?: FlowerPlacement[];
   onBack: () => void;
@@ -26,34 +32,38 @@ interface LetterPreviewProps {
   readOnly?: boolean;
 }
 
-function splitIntoPages(text: string, charsPerPage = 900): string[] {
-  if (!text || text.length <= charsPerPage) return [text || ''];
-  const pages: string[] = [];
-  let remaining = text;
-  while (remaining.length > 0) {
-    if (remaining.length <= charsPerPage) { pages.push(remaining); break; }
-    let bp = remaining.lastIndexOf('\n\n', charsPerPage);
-    if (bp < charsPerPage * 0.4) bp = remaining.lastIndexOf('\n', charsPerPage);
-    if (bp < charsPerPage * 0.4) bp = remaining.lastIndexOf('. ', charsPerPage);
-    if (bp < charsPerPage * 0.25) bp = remaining.lastIndexOf(' ', charsPerPage);
-    if (bp <= 0) bp = charsPerPage;
-    pages.push(remaining.slice(0, bp + 1));
-    remaining = remaining.slice(bp + 1).trimStart();
-    if (!remaining) break;
-  }
-  return pages.length ? pages : [''];
+function isLightFlower(color: string) {
+  return ['#d8cfbf', '#dcd6ca', '#e8e1d4', '#ddd6c8', '#e2dbcf'].includes(color.toLowerCase());
 }
 
 export default function LetterPreview({
-  salutation = 'My dearest', recipient, content, closing = 'Forever yours,',
+  salutation = '', recipient, content, closing = '',
   signature, sealType, sealColor, crest,
-  customInitials, bodyFont = 'eb-garamond', signatureFont = 'great-vibes',
+  customInitials, letterDate,
+  bodyFont = 'eb-garamond', salutationFont = 'eb-garamond', recipientFont = 'eb-garamond', closingFont = 'eb-garamond', signatureFont = 'great-vibes',
   flowers = [], onBack, onSend, sending, readOnly,
 }: LetterPreviewProps) {
   const isRichContent = hasRichLetterHtml(content);
   const safeContent = useMemo(() => sanitizeLetterHtml(content), [content]);
-  const pages = useMemo(() => isRichContent ? [safeContent] : splitIntoPages(content), [content, isRichContent, safeContent]);
-  const totalPages = pages.length;
+  const pages = useMemo(
+    () => isRichContent ? splitRichLetterHtmlIntoPages(safeContent) : splitPlainTextIntoPages(content),
+    [content, isRichContent, safeContent],
+  );
+  const renderedPages = useMemo(
+    () => pages.map((pageContent) => isRichContent ? decorateLetterHtml(pageContent) : decoratePlainLetterText(pageContent)),
+    [isRichContent, pages],
+  );
+  const totalPages = renderedPages.length;
+
+  usePageMeta({
+    title: readOnly
+      ? `${recipient ? `A Letter for ${recipient}` : 'A Letter'} — Courier of Hearts`
+      : 'Preview Your Letter — Courier of Hearts',
+    description: readOnly
+      ? `Open a letter${recipient ? ` for ${recipient}` : ''} on parchment with wax, flowers, and a quiet little ceremony.`
+      : 'Preview your parchment letter before you seal and send it.',
+    robots: readOnly ? 'index,follow' : 'noindex,nofollow',
+  });
 
   return (
     <div className="min-h-screen parchment-bg">
@@ -67,7 +77,7 @@ export default function LetterPreview({
       </nav>
 
       <div className="max-w-3xl mx-auto px-4 py-8 md:py-12 relative z-10">
-        {pages.map((pageContent, pi) => (
+        {renderedPages.map((pageContent, pi) => (
           <article key={pi} className="print-letter relative letter-paper rounded-sm mb-8 last:mb-0"
             style={{ padding: 'clamp(32px, 6vw, 64px)', minHeight: '600px', pageBreakAfter: pi < totalPages - 1 ? 'always' : 'auto' }}>
 
@@ -77,40 +87,44 @@ export default function LetterPreview({
             <div className="absolute bottom-0 left-0 pointer-events-none z-10"><CornerOrnament position="bottom-left" color="#8b7340" /></div>
             <div className="absolute bottom-0 right-0 pointer-events-none z-10"><CornerOrnament position="bottom-right" color="#8b7340" /></div>
 
-            {/* Faint ruled lines */}
             <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-sm"
               style={{ backgroundImage: `repeating-linear-gradient(to bottom, transparent 0px, transparent 1.85em, rgba(100,80,40,0.04) 1.85em, rgba(100,80,40,0.04) 1.86em)`, backgroundSize: '100% 1.9em', backgroundPosition: '0 48px' }} />
 
-            {/* Page 1 header */}
             {pi === 0 && (
               <div className="relative z-10">
-                {customInitials && <div className="text-center mb-2 ink-fade-in"><span className="font-uncial text-5xl md:text-6xl text-burgundy/30 select-none">{customInitials.charAt(0)}</span></div>}
-                {crest !== 'none' && <div className="flex justify-center mb-3 ink-fade-in"><CrestDecoration type={crest} /></div>}
-                <div className="ink-fade-in"><OrnamentDivider className="w-28 md:w-36 mx-auto mb-5" color="#8b7340" /></div>
-                {recipient && <p className="font-display text-lg md:text-xl italic mb-5 ink-fade-in-delayed relative z-10 ink-engraved">{salutation} {recipient},</p>}
+                {letterDate && <p className="text-right font-display text-sm italic text-ink/45 mb-2 md:mb-3">{letterDate}</p>}
+                {customInitials && <div className="text-center mb-1 md:mb-2 ink-fade-in"><span className="font-uncial text-4xl md:text-5xl tracking-[0.12em] text-burgundy/35 select-none">{customInitials}</span></div>}
+                {crest !== 'none' && <div className="flex justify-center mb-2 md:mb-3 ink-fade-in"><CrestDecoration type={crest} /></div>}
+                <div className="ink-fade-in"><OrnamentDivider className="w-24 md:w-32 mx-auto mb-3 md:mb-4" color="#8b7340" /></div>
+                {(salutation || recipient) && (
+                  <p className="text-lg md:text-xl italic mb-3 md:mb-4 ink-fade-in-delayed relative z-10 ink-engraved">
+                    {salutation && <span style={{ fontFamily: getFontFamilyByChoice(salutationFont) }}>{salutation}</span>}
+                    {salutation && recipient ? ' ' : ''}
+                    {recipient && <span style={{ fontFamily: getFontFamilyByChoice(recipientFont) }}>{recipient}</span>}
+                    {recipient ? ',' : ''}
+                  </p>
+                )}
               </div>
             )}
 
-            {/* Body — deep engraved */}
-            {isRichContent ? (
-              <div className="rich-letter-content text-[17px] md:text-[18px] leading-[1.95] whitespace-pre-wrap relative z-10 ink-fade-in-delayed ink-engraved"
-                style={{ fontFamily: getFontFamilyByChoice(bodyFont), letterSpacing: '0.01em', wordSpacing: '0.04em' }}
-                dangerouslySetInnerHTML={{ __html: pageContent }} />
-            ) : (
-              <div className="text-[17px] md:text-[18px] leading-[1.95] whitespace-pre-wrap relative z-10 ink-fade-in-delayed ink-engraved"
-                style={{ fontFamily: getFontFamilyByChoice(bodyFont), letterSpacing: '0.01em', wordSpacing: '0.04em' }}>
-                {pageContent}
-              </div>
-            )}
+            <div className="rich-letter-content letter-flow relative z-10 ink-fade-in-delayed ink-engraved"
+              style={{
+                fontFamily: getFontFamilyByChoice(bodyFont),
+                fontSize: `clamp(${LETTER_UI.bodyFontSize}px, 1.2vw + 13px, ${LETTER_UI.bodyFontSizeMd}px)`,
+                lineHeight: LETTER_UI.lineHeight,
+                letterSpacing: '0.01em',
+                wordSpacing: '0.04em',
+                whiteSpace: 'pre-wrap',
+              }}
+              dangerouslySetInnerHTML={{ __html: pageContent }} />
 
-            {/* Last page: closing + signature */}
             {pi === totalPages - 1 && (
               <div className="relative z-10 mt-8 ink-fade-in-delayed-2">
                 <div className="text-right space-y-1">
-                  <p className="font-display text-base italic ink-engraved">{closing}</p>
+                  {closing ? <p className="text-base ink-engraved" style={{ fontFamily: getFontFamilyByChoice(closingFont) }}>{closing}</p> : null}
                   <p className="text-2xl md:text-3xl ink-engraved" style={{ fontFamily: getSigFontFamilyByChoice(signatureFont) }}>{signature}</p>
                 </div>
-                <div className="flex justify-center mt-6"><WaxSealIcon sealType={sealType} sealColor={sealColor} size={70} /></div>
+                <div className="print-hide-seal flex justify-center mt-6"><WaxSealIcon sealType={sealType} sealColor={sealColor} customInitials={customInitials} size={70} /></div>
               </div>
             )}
 
@@ -119,7 +133,19 @@ export default function LetterPreview({
             {flowers.map(f => {
               const def = ALL_FLOWERS.find(fl => fl.id === f.flowerId); if (!def) return null;
               const Comp = def.Component;
-              return <div key={f.id} className="absolute pointer-events-none z-[1]" style={{ left: `${f.x}%`, top: `${f.y}%`, transform: `rotate(${f.rotation}deg) translate(-50%,-50%)`, opacity: 0.18, mixBlendMode: 'multiply' as const }}><Comp size={f.size} color={def.defaultColor} /></div>;
+              return (
+                <div key={f.id} className="absolute pointer-events-none z-[1]"
+                  style={{
+                    left: `${f.x}%`,
+                    top: `${f.y}%`,
+                    transform: `translate(-50%,-50%) rotate(${f.rotation}deg)`,
+                    opacity: LETTER_UI.previewFlowerOpacity,
+                    mixBlendMode: 'multiply' as const,
+                    filter: isLightFlower(def.defaultColor) ? 'drop-shadow(0 0.5px 0 rgba(90,65,25,0.35))' : 'none',
+                  }}>
+                  <Comp size={f.size} color={def.defaultColor} />
+                </div>
+              );
             })}
           </article>
         ))}

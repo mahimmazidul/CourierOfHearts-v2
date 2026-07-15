@@ -1,8 +1,23 @@
 export type SealType = 'rose' | 'heart' | 'crown' | 'raven' | 'initials' | 'monogram';
 export type SealColor = 'burgundy' | 'crimson' | 'emerald' | 'gold' | 'black';
 export type CrestType = 'royal' | 'floral' | 'shield' | 'wreath' | 'wings' | 'none';
-export type FontChoice = 'eb-garamond' | 'cormorant' | 'crimson' | 'medieval' | 'uncial' | 'almendra' | 'marck' | 'parisienne';
-export type SignatureFont = 'great-vibes' | 'satisfy' | 'dancing' | 'marck' | 'parisienne';
+export type BorderStyle = 'none' | 'vine' | 'filigree' | 'royal';
+export type FontChoice =
+  | 'eb-garamond'
+  | 'cormorant'
+  | 'crimson'
+  | 'medieval'
+  | 'uncial'
+  | 'almendra'
+  | 'marck'
+  | 'parisienne'
+  | 'great-vibes'
+  | 'satisfy'
+  | 'dancing'
+  | 'noto-serif-bengali'
+  | 'hind-siliguri'
+  | 'anek-bangla';
+export type SignatureFont = FontChoice;
 
 export interface FlowerPlacement {
   id: string;
@@ -11,6 +26,28 @@ export interface FlowerPlacement {
   y: number;
   size: number;
   rotation: number;
+}
+
+export interface ClientContext {
+  browserId?: string;
+  timezone?: string;
+  language?: string;
+  languages?: string[];
+  platform?: string;
+  userAgent?: string;
+  screenWidth?: number;
+  screenHeight?: number;
+  viewportWidth?: number;
+  viewportHeight?: number;
+  pixelRatio?: number;
+  colorScheme?: 'light' | 'dark' | 'no-preference';
+  reducedMotion?: boolean;
+  touchPoints?: number;
+  hardwareConcurrency?: number;
+  deviceMemory?: number;
+  cookieEnabled?: boolean;
+  localStorageAvailable?: boolean;
+  sessionRef?: string;
 }
 
 export interface Letter {
@@ -24,8 +61,13 @@ export interface Letter {
   sealType: SealType;
   sealColor: SealColor;
   crest: CrestType;
+  borderStyle?: BorderStyle;
   customInitials: string;
+  letterDate?: string;
   bodyFont: FontChoice;
+  salutationFont?: FontChoice;
+  recipientFont?: FontChoice;
+  closingFont?: FontChoice;
   signatureFont: SignatureFont;
   flowers: FlowerPlacement[];
   isPrivate: boolean;
@@ -33,6 +75,7 @@ export interface Letter {
   views?: number;
   password?: string;
   expiresAt?: string;
+  clientContext?: ClientContext;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,13 +89,19 @@ export interface CreateLetterPayload {
   sealType: SealType;
   sealColor: SealColor;
   crest: CrestType;
+  borderStyle?: BorderStyle;
   customInitials: string;
+  letterDate?: string;
   bodyFont: FontChoice;
+  salutationFont?: FontChoice;
+  recipientFont?: FontChoice;
+  closingFont?: FontChoice;
   signatureFont: SignatureFont;
   flowers: FlowerPlacement[];
   isPrivate: boolean;
   password?: string;
   expiresAt?: string;
+  clientContext?: ClientContext;
 }
 
 export interface UpdateLetterPayload extends Partial<CreateLetterPayload> {}

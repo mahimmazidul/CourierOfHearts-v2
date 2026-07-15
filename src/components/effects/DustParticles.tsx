@@ -38,8 +38,8 @@ export default function DustParticles() {
       size: Math.random() * 2 + 0.5,
       speedX: (Math.random() - 0.5) * 0.3,
       speedY: -Math.random() * 0.2 - 0.05,
-      opacity: Math.random() * 0.4 + 0.1,
-      fadeSpeed: Math.random() * 0.002 + 0.001,
+      opacity: Math.random() * 0.45 + 0.18,
+      fadeSpeed: Math.random() * 0.002 + 0.0012,
     }));
 
     let direction = 1;
@@ -49,7 +49,7 @@ export default function DustParticles() {
         p.x += p.speedX;
         p.y += p.speedY;
         p.opacity += p.fadeSpeed * direction;
-        if (p.opacity >= 0.5 || p.opacity <= 0.05) {
+        if (p.opacity >= 0.68 || p.opacity <= 0.12) {
           p.fadeSpeed *= -1;
         }
         if (p.y < -10) p.y = canvas.height + 10;
@@ -58,7 +58,7 @@ export default function DustParticles() {
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(160, 130, 70, ${p.opacity})`;
+        ctx.fillStyle = `rgba(176, 146, 86, ${p.opacity})`;
         ctx.fill();
       });
       animRef.current = requestAnimationFrame(animate);
@@ -74,8 +74,9 @@ export default function DustParticles() {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-10"
+      className="pointer-events-none fixed inset-0 z-10 gpu-layer"
       aria-hidden="true"
+      style={{ contain: 'strict' }}
     />
   );
 }

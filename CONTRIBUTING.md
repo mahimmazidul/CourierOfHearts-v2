@@ -1,146 +1,143 @@
 # Contributing to The Courier of Hearts
 
-Thank you for wanting to help make this project more beautiful. This is a passion project built with love, and every contribution should reflect that spirit.
+Thank you for wanting to help make this project more beautiful.
+
+This is not a feature-race project. It should feel intimate, deliberate, and worth keeping.
 
 ---
 
 ## Design Philosophy
 
-Before contributing, understand the core principle:
+Before contributing, remember the core principle:
 
 > **Every design decision should optimize for emotional impact rather than feature count.**
 
-- When choosing between more features or more beauty — **choose beauty.**
-- When choosing between more settings or a smoother experience — **choose the smoother experience.**
-- The recipient should finish reading and think: *"Nobody has ever sent me something this beautiful."*
+- When choosing between more features or more beauty — **choose beauty**.
+- When choosing between more settings or a smoother experience — **choose the smoother experience**.
+- When polishing, prefer subtlety over loudness.
+
+---
+
+## Project Shape
+
+The app now includes:
+- a React frontend
+- a Fastify backend
+- SQLite persistence
+- self-hosted fonts
+- optional admin/steward tools
+- local browser fallback for frontend-only environments
+
+Contributions should respect that split.
 
 ---
 
 ## Coding Standards
 
-### TypeScript
-
-- Strict mode enabled
-- Use explicit types for function parameters and return values
-- Prefer interfaces over type aliases for object shapes
-- Use `type` imports where possible
-
-### React
-
-- Functional components only
-- Custom hooks for shared logic
-- Components should be focused and composable
-- Keep components under 200 lines when possible
-- Use semantic HTML elements
+### TypeScript / React
+- functional components only
+- explicit types where helpful
+- keep components focused
+- prefer shared helpers/hooks over repeated logic
 
 ### Styling
+- Tailwind utilities first
+- custom CSS for texture, print, and animation details
+- avoid heavy UI shifts that break the tone
 
-- Tailwind CSS utility classes
-- Custom CSS only for animations and complex effects
-- Follow the established color palette and typography system
-- Test on mobile and desktop
-
-### Architecture
-
-- All data access through `services/api.ts`
-- Never access localStorage from components
-- Keep business logic out of components
-- Components should be pure presentation when possible
-
----
-
-## Pull Request Workflow
-
-1. **Fork** the repository
-2. **Create a feature branch** from `main`
-3. **Make your changes** with clear, focused commits
-4. **Test** on mobile and desktop browsers
-5. **Run the build** to confirm everything compiles: `npm run build`
-6. **Submit a PR** with a clear description
-
-### PR Description Template
-
-```
-## What
-
-Brief description of the change.
-
-## Why
-
-Why this change makes the experience better.
-
-## How
-
-Technical approach taken.
-
-## Screenshots
-
-Before/after screenshots or screen recordings.
-```
+### Data / Storage
+- frontend data access goes through `src/services/`
+- server behavior lives in `server/index.js`
+- avoid direct component-level persistence hacks
+- if you touch fallback/local storage behavior, test both:
+  - backend available
+  - backend unavailable
 
 ---
 
-## Issue Templates
-
-### Bug Report
-
-```
-**Describe the bug**
-A clear description of what the bug is.
-
-**To reproduce**
-Steps to reproduce the behavior.
-
-**Expected behavior**
-What you expected to happen.
-
-**Screenshots**
-If applicable, add screenshots.
-
-**Device**
-- OS: [e.g., iOS]
-- Browser: [e.g., Safari]
-- Screen size: [e.g., mobile]
-```
-
-### Feature Request
-
-```
-**Is this about beauty or features?**
-Explain how this enhances the emotional experience.
-
-**Describe the feature**
-A clear description of what you'd like.
-
-**Why it matters**
-How it serves the core goal: making the recipient feel special.
-
-**Visual reference**
-Mockups, references, or inspiration.
-```
-
----
-
-## Getting Started
+## Local Development
 
 ```bash
 npm install
 npm run dev
+npm run server
 ```
 
-The development server will start at `http://localhost:5173`.
+Useful extras:
+
+```bash
+npm run build
+npm run server:stats
+npm run letters:admin -- --full
+node scripts/take-screenshots.mjs
+```
 
 ---
 
-## Areas for Contribution
+## Deployment
 
-- **Animation Polish** — Smoother transitions, more delightful micro-interactions
-- **Accessibility** — Screen reader improvements, keyboard navigation
-- **Internationalization** — Love letters in every language
-- **Sound Design** — Subtle ambient audio (fireplace, page turning)
-- **New Seal Designs** — Hand-illustrated SVG wax seal patterns
-- **Performance** — Faster load times, optimized animations
-- **Backend Implementation** — REST API, database, authentication
+Production deploy helper:
+
+```bash
+bash deploy.sh
+```
+
+If you change deployment behavior, update:
+- `deploy.sh`
+- `.env.example`
+- `README.md`
+- `API.md`
+
+---
+
+## Screenshots / Docs
+
+If UI changes are visible, refresh the docs screenshots and update markdown references where needed.
+
+Current screenshot script:
+
+```bash
+node scripts/take-screenshots.mjs
+```
+
+---
+
+## Pull Requests
+
+Please include:
+
+```md
+## What changed
+
+## Why it improves the experience
+
+## Notes for testing
+
+## Screenshots (desktop/mobile if relevant)
+```
+
+---
+
+## Areas of Good Contribution
+
+- typography polish
+- accessibility improvements
+- print layout improvements
+- performance / stability work
+- Bangla and multilingual support
+- subtle new ornaments, seals, and border ideas
+- steward/admin operational improvements
+- deployment hardening
+
+---
+
+## Be Careful With
+
+- invasive tracking ideas
+- flashy dashboard-style UI changes
+- adding complexity that weakens the emotional tone
+- breaking offline/local fallback behavior
+- breaking print output
 
 ---
 

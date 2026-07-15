@@ -1,0 +1,22 @@
+[Unit]
+Description=Courier of Hearts API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/lib/courier-of-hearts
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3847
+Environment=DB_FILE=/var/lib/courier-of-hearts/data/letters.db
+Environment=CACHE_DIR=/var/lib/courier-of-hearts/cache
+Environment=CORS_ORIGIN=https://letters.example.com
+EnvironmentFile=/etc/courier-of-hearts/.env
+ExecStart=/usr/bin/node /var/lib/courier-of-hearts/server/index.js
+Restart=always
+RestartSec=3
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

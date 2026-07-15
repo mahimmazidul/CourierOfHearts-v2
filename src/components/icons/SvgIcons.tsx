@@ -150,16 +150,12 @@ export function EnvelopeIcon({ size = 24, className = '', color = 'currentColor'
 export function OrnamentDivider({ className = '', color = 'currentColor' }: { className?: string; color?: string }) {
   return (
     <svg viewBox="0 0 400 30" className={className} fill="none" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
-      {/* Left flourish */}
       <path d="M10,15 Q30,15 50,10 Q65,6 80,12 Q95,18 110,12 Q125,6 140,10 Q160,14 180,13 Q190,13 200,15" stroke={color} strokeWidth="0.7" opacity="0.35" />
       <path d="M40,15 Q55,20 70,16 Q85,12 100,16 Q115,20 130,16 Q145,12 165,14 Q180,15 200,15" stroke={color} strokeWidth="0.5" opacity="0.2" />
-      {/* Right flourish — mirror */}
       <path d="M390,15 Q370,15 350,10 Q335,6 320,12 Q305,18 290,12 Q275,6 260,10 Q240,14 220,13 Q210,13 200,15" stroke={color} strokeWidth="0.7" opacity="0.35" />
       <path d="M360,15 Q345,20 330,16 Q315,12 300,16 Q285,20 270,16 Q255,12 235,14 Q220,15 200,15" stroke={color} strokeWidth="0.5" opacity="0.2" />
-      {/* Center diamond */}
       <path d="M196,15 L200,11 L204,15 L200,19Z" fill={color} opacity="0.25" />
       <circle cx="200" cy="15" r="1.5" fill={color} opacity="0.15" />
-      {/* Side dots */}
       <circle cx="185" cy="15" r="1" fill={color} opacity="0.15" />
       <circle cx="215" cy="15" r="1" fill={color} opacity="0.15" />
       <circle cx="175" cy="14" r="0.6" fill={color} opacity="0.1" />
@@ -179,18 +175,13 @@ export function CornerOrnament({ className = '', color = 'currentColor', positio
   return (
     <svg width="80" height="80" viewBox="0 0 80 80" className={className} fill="none" aria-hidden="true">
       <g transform={transforms[position] || ''}>
-        {/* Outer curves */}
         <path d="M2,2 Q2,35 8,45 Q14,55 26,60 Q32,62 36,62" stroke={color} strokeWidth="1" opacity="0.3" />
         <path d="M2,2 Q35,2 45,8 Q55,14 60,26 Q62,32 62,36" stroke={color} strokeWidth="1" opacity="0.3" />
-        {/* Inner curves */}
         <path d="M6,6 Q6,28 12,36 Q18,44 26,48" stroke={color} strokeWidth="0.7" opacity="0.2" />
         <path d="M6,6 Q28,6 36,12 Q44,18 48,26" stroke={color} strokeWidth="0.7" opacity="0.2" />
-        {/* Leaf flourish */}
         <path d="M16,16 Q12,22 14,28 Q16,22 20,18Z" fill={color} opacity="0.08" />
         <path d="M16,16 Q22,12 28,14 Q22,16 18,20Z" fill={color} opacity="0.08" />
-        {/* Corner block */}
         <path d="M2,2 L10,2 L10,3.5 L3.5,3.5 L3.5,10 L2,10Z" fill={color} opacity="0.18" />
-        {/* Small center dot */}
         <circle cx="5" cy="5" r="2" fill={color} opacity="0.12" />
       </g>
     </svg>

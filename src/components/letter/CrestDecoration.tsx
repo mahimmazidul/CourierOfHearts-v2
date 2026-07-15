@@ -54,7 +54,6 @@ export default function CrestDecoration({ type, size = 60 }: CrestDecorationProp
           <path d="M0,-28 Q12,-26 16,-16 Q20,-6 16,4 Q12,12 4,16" stroke={color} strokeWidth="1" fill="none" />
           <path d="M0,-28 Q-12,-26 -16,-16 Q-20,-6 -16,4 Q-12,12 -4,16" stroke={color} strokeWidth="1" fill="none" />
           <path d="M4,16 Q2,20 0,22 Q-2,20 -4,16" stroke={color} strokeWidth="1" fill={color} fillOpacity="0.1" />
-          {/* Leaf details */}
           <ellipse cx="10" cy="-20" rx="4" ry="2" stroke={color} strokeWidth="0.6" fill={color} fillOpacity="0.06" transform="rotate(-30 10 -20)" />
           <ellipse cx="-10" cy="-20" rx="4" ry="2" stroke={color} strokeWidth="0.6" fill={color} fillOpacity="0.06" transform="rotate(30 -10 -20)" />
           <ellipse cx="16" cy="-8" rx="4" ry="2" stroke={color} strokeWidth="0.6" fill={color} fillOpacity="0.06" transform="rotate(-60 16 -8)" />
@@ -65,15 +64,12 @@ export default function CrestDecoration({ type, size = 60 }: CrestDecorationProp
       )}
       {type === 'wings' && (
         <g transform="translate(40,40)">
-          {/* Left wing */}
           <path d="M-4,-2 Q-20,-20 -30,-14 Q-22,-8 -18,-2" stroke={color} strokeWidth="1" fill={color} fillOpacity="0.04" />
           <path d="M-4,0 Q-24,-10 -32,-2 Q-22,0 -16,4" stroke={color} strokeWidth="1" fill={color} fillOpacity="0.04" />
           <path d="M-4,2 Q-22,0 -28,8 Q-18,8 -12,8" stroke={color} strokeWidth="1" fill={color} fillOpacity="0.04" />
-          {/* Right wing */}
           <path d="M4,-2 Q20,-20 30,-14 Q22,-8 18,-2" stroke={color} strokeWidth="1" fill={color} fillOpacity="0.04" />
           <path d="M4,0 Q24,-10 32,-2 Q22,0 16,4" stroke={color} strokeWidth="1" fill={color} fillOpacity="0.04" />
           <path d="M4,2 Q22,0 28,8 Q18,8 12,8" stroke={color} strokeWidth="1" fill={color} fillOpacity="0.04" />
-          {/* Center heart */}
           <path d="M0,6 Q0,6 -6,0 Q-8,-4 -4,-6 Q-1,-8 0,-4 Q1,-8 4,-6 Q8,-4 6,0 Q0,6 0,6Z" fill={color} fillOpacity="0.15" stroke={color} strokeWidth="0.8" />
         </g>
       )}

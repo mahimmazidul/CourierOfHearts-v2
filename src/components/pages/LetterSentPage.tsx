@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import type { Letter } from '@/types/letter';
 import { getLetter } from '@/services/api';
 import WaxSealIcon from '@/components/icons/WaxSealIcon';
@@ -14,6 +15,12 @@ interface LetterSentPageProps {
 export default function LetterSentPage({ slug, onBack, onPreview }: LetterSentPageProps) {
   const [letter, setLetter] = useState<Letter | null>(null);
   const [copied, setCopied] = useState(false);
+
+  usePageMeta({
+    title: letter?.recipient ? `Your Letter for ${letter.recipient} Is Ready — Courier of Hearts` : 'Your Letter Is Ready — Courier of Hearts',
+    description: 'Your parchment letter has been sealed. Copy the link and send it with its little ceremony intact.',
+    robots: 'noindex,nofollow',
+  });
 
   useEffect(() => {
     (async () => {
@@ -53,7 +60,7 @@ export default function LetterSentPage({ slug, onBack, onPreview }: LetterSentPa
 
         {letter && (
           <div className="mb-8 stamp-press">
-            <WaxSealIcon sealType={letter.sealType} sealColor={letter.sealColor} size={90} className="mx-auto" />
+            <WaxSealIcon sealType={letter.sealType} sealColor={letter.sealColor} customInitials={letter.customInitials} size={90} className="mx-auto" />
           </div>
         )}
 
@@ -84,7 +91,7 @@ export default function LetterSentPage({ slug, onBack, onPreview }: LetterSentPa
 
         <div className="mt-10">
           <p className="font-body text-[14px] text-ink/35 italic leading-relaxed">
-            When they open this link, they will experience<br />a ceremonial letter-opening ceremony.
+            When they open this link, the letter will unfold<br />with a quiet little ceremony of its own.
           </p>
         </div>
       </div>

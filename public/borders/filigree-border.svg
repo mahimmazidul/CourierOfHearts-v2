@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1400" fill="none">
+  <rect x="18" y="18" width="964" height="1364" rx="12" stroke="#8b7340" stroke-width="1.5" opacity="0.22"/>
+  <rect x="34" y="34" width="932" height="1332" rx="10" stroke="#8b7340" stroke-width="0.8" opacity="0.12"/>
+  <g stroke="#8b7340" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M144 74c22 0 42 14 51 36 10-23 29-36 52-36 22 0 40 12 49 31" stroke-width="1.3" opacity="0.28"/>
+    <path d="M856 74c-22 0-42 14-51 36-10-23-29-36-52-36-22 0-40 12-49 31" stroke-width="1.3" opacity="0.28"/>
+    <path d="M144 1326c22 0 42-14 51-36 10 23 29 36 52 36 22 0 40-12 49-31" stroke-width="1.3" opacity="0.28"/>
+    <path d="M856 1326c-22 0-42-14-51-36-10 23-29 36-52 36-22 0-40-12-49-31" stroke-width="1.3" opacity="0.28"/>
+    <path d="M500 64c25 0 45 20 45 45-2 24-20 37-45 55-25-18-43-31-45-55 0-25 20-45 45-45Z" stroke-width="1.2" opacity="0.24"/>
+    <circle cx="500" cy="108" r="8" fill="#8b7340" opacity="0.14" stroke-width="0.8"/>
+    <path d="M114 700c36-14 58-40 66-77 8 37 30 63 66 77-36 14-58 40-66 77-8-37-30-63-66-77Z" stroke-width="1" opacity="0.18"/>
+    <path d="M886 700c-36-14-58-40-66-77-8 37-30 63-66 77 36 14 58 40 66 77 8-37 30-63 66-77Z" stroke-width="1" opacity="0.18"/>
+  </g>
+</svg>
