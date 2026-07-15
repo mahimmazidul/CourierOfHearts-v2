@@ -7,7 +7,7 @@ DEPLOY_ENV_FILE="${REPO_ROOT}/.deploy.env"
 
 load_env_file() {
   local file="$1"
-  if [[ -f "$file" ]]; then
+  if [[ -r "$file" ]]; then
     set -a
     source "$file"
     set +a
@@ -16,6 +16,7 @@ load_env_file() {
 
 load_env_file "$REPO_ROOT/.env"
 load_env_file "$DEPLOY_ENV_FILE"
+load_env_file "/etc/${APP_NAME}/.env"
 
 PUBLIC_ROOT="${PUBLIC_ROOT:-/var/lib/${APP_NAME}}"
 API_PORT="${API_PORT:-3847}"

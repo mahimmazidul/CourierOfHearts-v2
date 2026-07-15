@@ -186,12 +186,16 @@ if [[ ! -d "$PUBLIC_ROOT" ]]; then
   echo "==> Server directory not found, creating: $PUBLIC_ROOT"
 fi
 sudo mkdir -p "$APP_ROOT" "$PUBLIC_ROOT" /etc/${APP_NAME} "$PUBLIC_ROOT/data" "$PUBLIC_ROOT/cache" "$PUBLIC_ROOT/server/data" "/var/backups/${APP_NAME}"
+sudo chown -R "$LOCAL_USER":"$LOCAL_USER" "$APP_ROOT" "$PUBLIC_ROOT"
+sudo chmod 755 "$PUBLIC_ROOT" "$PUBLIC_ROOT/server" "$PUBLIC_ROOT/server/data" "$PUBLIC_ROOT/data" "$PUBLIC_ROOT/cache"
 
 echo "==> Syncing frontend from cloned repo build output"
 sudo rsync -a --delete "$REPO_ROOT/dist/" "$APP_ROOT/"
 
 echo "==> Syncing backend from cloned repo"
 sudo rsync -a "$REPO_ROOT/package.json" "$REPO_ROOT/package-lock.json" "$REPO_ROOT/node_modules" "$REPO_ROOT/server" "$REPO_ROOT/scripts" "$PUBLIC_ROOT/"
+sudo chown -R "$LOCAL_USER":"$LOCAL_USER" "$PUBLIC_ROOT"
+sudo chmod 755 "$PUBLIC_ROOT" "$PUBLIC_ROOT/server" "$PUBLIC_ROOT/server/data" "$PUBLIC_ROOT/data" "$PUBLIC_ROOT/cache"
 
 if [[ -n "$LEGACY_JSON_SOURCE" ]]; then
   if [[ ! -f "$LEGACY_JSON_SOURCE" ]]; then
@@ -199,10 +203,12 @@ if [[ -n "$LEGACY_JSON_SOURCE" ]]; then
     exit 1
   fi
   echo "==> Copying legacy JSON from ${LEGACY_JSON_SOURCE} to ${PUBLIC_ROOT}/server/data/letters.json"
-  sudo install -m 640 "$LEGACY_JSON_SOURCE" "${PUBLIC_ROOT}/server/data/letters.json"
+  sudo install -o www-data -g www-data -m 640 "$LEGACY_JSON_SOURCE" "${PUBLIC_ROOT}/server/data/letters.json"
 fi
 
 if sudo test -f "${PUBLIC_ROOT}/server/data/letters.json"; then
+  sudo chown www-data:www-data "${PUBLIC_ROOT}/server/data/letters.json"
+  sudo chmod 640 "${PUBLIC_ROOT}/server/data/letters.json"
   echo "==> Found legacy JSON file at ${PUBLIC_ROOT}/server/data/letters.json"
 else
   echo "==> No legacy JSON file found at ${PUBLIC_ROOT}/server/data/letters.json"
