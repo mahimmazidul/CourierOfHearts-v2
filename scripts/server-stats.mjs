@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
-function loadEnvFile(path) {
+
+function loadEnvFile(path, override = true) {
   if (!existsSync(path)) return;
   let envText = '';
   try {
@@ -23,13 +24,13 @@ function loadEnvFile(path) {
     if (eq <= 0) continue;
     const key = trimmed.slice(0, eq).trim();
     const value = trimmed.slice(eq + 1).trim();
-    if (!(key in process.env)) process.env[key] = value;
+    if (override || !(key in process.env)) process.env[key] = value;
   }
 }
 
-loadEnvFile(join(root, '.env'));
-loadEnvFile(join(root, '.deploy.env'));
-loadEnvFile('/etc/courier-of-hearts/.env');
+loadEnvFile(join(root, '.env'), false);
+loadEnvFile(join(root, '.deploy.env'), true);
+loadEnvFile('/etc/courier-of-hearts/.env', true);
 
 const DB_FILE = process.env.DB_FILE || join(root, 'server', 'data', 'letters.db');
 const LEGACY_DATA_FILE = process.env.LEGACY_DATA_FILE || join(root, 'server', 'data', 'letters.json');
@@ -50,10 +51,6 @@ function formatBytes(value) {
   return `${size.toFixed(size >= 100 || index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
-function stripHtml(value) {
-  return String(value || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
 const rows = existsSync(DB_FILE)
   ? new Database(DB_FILE, { readonly: true }).prepare('SELECT * FROM letters ORDER BY created_at DESC').all()
   : [];
@@ -67,6 +64,8 @@ const weekCutoff = now - 7 * 24 * 60 * 60 * 1000;
 
 let dbSize = 0;
 try { dbSize = statSync(DB_FILE).size; } catch {}
+let walSize = 0;
+try { walSize = statSync(`${DB_FILE}-wal`).size; } catch {}
 const cacheFiles = existsSync(CACHE_DIR) ? readdirSync(CACHE_DIR) : [];
 let cacheSize = 0;
 for (const file of cacheFiles) {
@@ -98,10 +97,10 @@ const stats = {
     totalViews,
     createdToday: rows.filter((row) => new Date(row.created_at).getTime() >= todayCutoff).length,
     createdLast7Days: rows.filter((row) => new Date(row.created_at).getTime() >= weekCutoff).length,
-    averageContentLength: 0,
   },
   storage: {
     dbSizeBytes: dbSize,
+    walSizeBytes: walSize,
     cacheFiles: cacheFiles.length,
     cacheSizeBytes: cacheSize,
     legacyJsonExists: existsSync(LEGACY_DATA_FILE),
@@ -125,7 +124,7 @@ console.log(`Letters      : ${stats.letters.total} total (${stats.letters.privat
 console.log(`Views        : ${stats.letters.totalViews}`);
 console.log(`Recent       : ${stats.letters.createdToday} today · ${stats.letters.createdLast7Days} in last 7 days`);
 console.log(`Database     : ${DB_FILE}`);
-console.log(`DB Size      : ${formatBytes(stats.storage.dbSizeBytes)}`);
+console.log(`DB Size      : ${formatBytes(stats.storage.dbSizeBytes)} (+ WAL ${formatBytes(stats.storage.walSizeBytes)})`);
 console.log(`Legacy JSON  : ${stats.storage.legacyJsonExists ? LEGACY_DATA_FILE : 'not found'}`);
 console.log(`MySQL Mirror : ${stats.storage.mysqlMirrorEnabled ? 'enabled' : 'disabled'}`);
 console.log(`Cache        : ${cacheFiles.length} files · ${formatBytes(cacheSize)}`);

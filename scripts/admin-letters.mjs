@@ -7,9 +7,10 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
-const localEnvPath = join(root, '.env');
-if (existsSync(localEnvPath)) {
-  const envText = readFileSync(localEnvPath, 'utf8');
+
+function loadEnvFile(path, override = true) {
+  if (!existsSync(path)) return;
+  const envText = readFileSync(path, 'utf8');
   for (const line of envText.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
@@ -17,9 +18,13 @@ if (existsSync(localEnvPath)) {
     if (eq <= 0) continue;
     const key = trimmed.slice(0, eq).trim();
     const value = trimmed.slice(eq + 1).trim();
-    if (!(key in process.env)) process.env[key] = value;
+    if (override || !(key in process.env)) process.env[key] = value;
   }
 }
+
+loadEnvFile(join(root, '.env'), false);
+loadEnvFile(join(root, '.deploy.env'), true);
+loadEnvFile('/etc/courier-of-hearts/.env', true);
 
 const DB_FILE = process.env.DB_FILE || join(root, 'server', 'data', 'letters.db');
 const LETTER_MASTER_KEY = process.env.LETTER_MASTER_KEY;
