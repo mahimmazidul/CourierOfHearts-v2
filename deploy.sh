@@ -4,6 +4,7 @@ set -euo pipefail
 APP_NAME="courier-of-hearts"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_ENV_FILE="${REPO_ROOT}/.deploy.env"
+LOCAL_USER="${SUDO_USER:-$(id -un)}"
 
 load_env_file() {
   local file="$1"
