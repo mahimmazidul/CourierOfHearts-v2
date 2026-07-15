@@ -188,7 +188,9 @@ if [[ ! -d "$PUBLIC_ROOT" ]]; then
 fi
 sudo mkdir -p "$APP_ROOT" "$PUBLIC_ROOT" /etc/${APP_NAME} "$PUBLIC_ROOT/data" "$PUBLIC_ROOT/cache" "$PUBLIC_ROOT/server/data" "/var/backups/${APP_NAME}"
 sudo chown -R "$LOCAL_USER":"$LOCAL_USER" "$APP_ROOT" "$PUBLIC_ROOT"
-sudo chmod 755 "$PUBLIC_ROOT" "$PUBLIC_ROOT/server" "$PUBLIC_ROOT/server/data" "$PUBLIC_ROOT/data" "$PUBLIC_ROOT/cache"
+sudo chmod 755 "$PUBLIC_ROOT" "$PUBLIC_ROOT/server"
+sudo chmod 775 "$PUBLIC_ROOT/server/data" "$PUBLIC_ROOT/data" "$PUBLIC_ROOT/cache"
+sudo chown -R www-data:www-data "$PUBLIC_ROOT/server/data" "$PUBLIC_ROOT/data" "$PUBLIC_ROOT/cache"
 
 echo "==> Syncing frontend from cloned repo build output"
 sudo rsync -a --delete "$REPO_ROOT/dist/" "$APP_ROOT/"
@@ -196,7 +198,9 @@ sudo rsync -a --delete "$REPO_ROOT/dist/" "$APP_ROOT/"
 echo "==> Syncing backend from cloned repo"
 sudo rsync -a "$REPO_ROOT/package.json" "$REPO_ROOT/package-lock.json" "$REPO_ROOT/node_modules" "$REPO_ROOT/server" "$REPO_ROOT/scripts" "$PUBLIC_ROOT/"
 sudo chown -R "$LOCAL_USER":"$LOCAL_USER" "$PUBLIC_ROOT"
-sudo chmod 755 "$PUBLIC_ROOT" "$PUBLIC_ROOT/server" "$PUBLIC_ROOT/server/data" "$PUBLIC_ROOT/data" "$PUBLIC_ROOT/cache"
+sudo chmod 755 "$PUBLIC_ROOT" "$PUBLIC_ROOT/server"
+sudo chmod 775 "$PUBLIC_ROOT/server/data" "$PUBLIC_ROOT/data" "$PUBLIC_ROOT/cache"
+sudo chown -R www-data:www-data "$PUBLIC_ROOT/server/data" "$PUBLIC_ROOT/data" "$PUBLIC_ROOT/cache"
 
 if [[ -n "$LEGACY_JSON_SOURCE" ]]; then
   if [[ ! -f "$LEGACY_JSON_SOURCE" ]]; then
