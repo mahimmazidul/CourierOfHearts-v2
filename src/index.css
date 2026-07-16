@@ -278,8 +278,7 @@ select,
 
 .rich-letter-content,
 .letter-flow {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: break-word;
   line-break: loose;
 }
 

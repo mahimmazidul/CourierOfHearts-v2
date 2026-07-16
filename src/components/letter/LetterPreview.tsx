@@ -5,7 +5,7 @@ import { OrnamentDivider, CornerOrnament } from '@/components/icons/SvgIcons';
 import CrestDecoration from '@/components/letter/CrestDecoration';
 import { ALL_FLOWERS } from '@/components/icons/FlowerSvgs';
 import { getFontFamilyByChoice, getSigFontFamilyByChoice } from '@/components/pages/ComposePage';
-import { decorateLetterHtml, decoratePlainLetterText, hasRichLetterHtml, sanitizeLetterHtml, splitPlainTextIntoPages, splitRichLetterHtmlIntoPages } from '@/utils/sanitizeHtml';
+import { decorateLetterHtml, decoratePlainLetterText, hasRichLetterHtml, htmlToPlainText, sanitizeLetterHtml, splitPlainTextIntoPages, splitRichLetterHtmlIntoPages } from '@/utils/sanitizeHtml';
 import { LETTER_UI } from '@/config/ui';
 import { usePageMeta } from '@/hooks/usePageMeta';
 

@@ -10,9 +10,9 @@ import { ALL_FLOWERS } from '@/components/icons/FlowerSvgs';
 import { getFontFamilyByChoice, getSigFontFamilyByChoice } from '@/components/pages/ComposePage';
 import {
   decorateLetterHtml,
-  escapeLetterHtml,
+  decoratePlainLetterText,
   hasRichLetterHtml,
-  plainTextToLetterHtml,
+  htmlToPlainText,
   richHtmlTextLength,
   sanitizeLetterHtml,
   sliceRichLetterHtml,
