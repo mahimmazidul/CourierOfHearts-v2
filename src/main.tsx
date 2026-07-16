@@ -29,7 +29,11 @@ import '@fontsource/hind-siliguri/600.css';
 import '@fontsource/anek-bangla/400.css';
 import '@fontsource/anek-bangla/600.css';
 import './index.css';
+import { initErrorReporter } from './utils/errorReporter';
 import App from './App';
+
+// Initialize error reporter as early as possible
+initErrorReporter();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

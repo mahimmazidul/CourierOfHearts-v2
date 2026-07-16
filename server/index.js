@@ -816,6 +816,31 @@ function healthHandler(_request, reply) {
 fastify.get('/health', healthHandler);
 fastify.get(`${API_PREFIX}/health`, healthHandler);
 
+// Client error reporting endpoint
+fastify.post(`${API_PREFIX}/client-errors`, async (request, reply) => {
+  const { errors } = request.body || {};
+  if (!Array.isArray(errors) || errors.length === 0) {
+    return reply.code(400).send({ success: false, error: 'Invalid payload: errors array required' });
+  }
+  
+  // Log errors to server console for debugging
+  for (const err of errors) {
+    fastify.log.warn({ 
+      message: err.message,
+      stack: err.stack,
+      source: err.source,
+      lineno: err.lineno,
+      colno: err.colno,
+      url: err.url,
+      userAgent: err.userAgent,
+      componentStack: err.componentStack,
+      timestamp: err.timestamp
+    }, 'Client error reported');
+  }
+  
+  reply.send({ success: true, received: errors.length });
+});
+
 fastify.get(`${API_PREFIX}/seals`, async (_request, reply) => reply.send({ success: true, data: seals }));
 fastify.get(`${API_PREFIX}/crests`, async (_request, reply) => reply.send({ success: true, data: crests }));
 

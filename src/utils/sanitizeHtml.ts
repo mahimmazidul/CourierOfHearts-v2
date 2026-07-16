@@ -306,9 +306,19 @@ function findPageBreakOffset(chunk: string, after: string, charsPerPage: number)
   const points = [
     { p: '\n\n', w: 100 },
     { p: '\n', w: 80 },
-    { p: '। ', w: 75 },
+    // Bangla punctuation (highest priority for Bangla text)
+    { p: '। ', w: 95 },
+    { p: '।', w: 90 },
+    { p: '॥ ', w: 95 },
+    { p: '॥', w: 90 },
+    { p: '၊ ', w: 85 },
+    { p: '၊', w: 80 },
+    { p: '؛ ', w: 85 },
+    { p: '؛', w: 80 },
+    { p: 'ঃ ', w: 80 },
+    { p: 'ঃ', w: 75 },
+    // Latin punctuation
     { p: '. ', w: 75 },
-    { p: '।', w: 65 },
     { p: '.', w: 65 },
     { p: '! ', w: 65 },
     { p: '? ', w: 65 },

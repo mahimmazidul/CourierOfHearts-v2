@@ -5,6 +5,8 @@ APP_NAME="courier-of-hearts"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_ENV_FILE="${REPO_ROOT}/.deploy.env"
 LOCAL_USER="${SUDO_USER:-$(id -un)}"
+REPO_URL="https://github.com/mahimmazidul/CourierOfHearts-v2.git"
+REPO_BRANCH="${REPO_BRANCH:-main}"
 
 load_env_file() {
   local file="$1"
@@ -106,6 +108,8 @@ VITE_ENABLE_ADMIN_PANEL=${VITE_ENABLE_ADMIN_PANEL}
 VITE_ADMIN_ROUTE=${VITE_ADMIN_ROUTE}
 ENABLE_UFW=${ENABLE_UFW}
 CERTBOT_EMAIL=${CERTBOT_EMAIL}
+REPO_URL=${REPO_URL}
+REPO_BRANCH=${REPO_BRANCH}
 EOF
 }
 
@@ -136,6 +140,8 @@ prompt_value MYSQL_MIRROR_URL "Optional MySQL/MariaDB mirror DSN (leave blank to
 prompt_value LEGACY_JSON_SOURCE "Optional path to old letters.json on this machine (leave blank to skip copy)" ""
 prompt_bool ENABLE_UFW "Apply simple UFW firewall rules (22/80/443 only)" "true"
 prompt_value CERTBOT_EMAIL "Certbot email (optional, leave blank to skip TLS setup)" ""
+prompt_value REPO_URL "Git repository URL" "https://github.com/mahimmazidul/CourierOfHearts-v2.git"
+prompt_value REPO_BRANCH "Git branch to deploy" "main"
 
 SERVER_NAMES="${DOMAIN}"
 CORS_ORIGINS="https://${DOMAIN}"
@@ -162,6 +168,7 @@ ensure_command rsync rsync
 ensure_command curl curl
 ensure_command nginx nginx
 ensure_command systemctl systemd
+ensure_command git git
 if [[ -n "$CERTBOT_EMAIL" || -z "$CERTBOT_EMAIL" ]]; then
   if ! command -v certbot >/dev/null 2>&1; then
     if command -v apt-get >/dev/null 2>&1; then
@@ -170,6 +177,50 @@ if [[ -n "$CERTBOT_EMAIL" || -z "$CERTBOT_EMAIL" ]]; then
       sudo apt-get install -y certbot python3-certbot-nginx
     fi
   fi
+fi
+
+# =============================================================================
+# GIT REPO SYNC: Pull latest updates from remote, with force pull as fallback
+# =============================================================================
+echo "==> Syncing repository from git remote..."
+if [[ -d "$REPO_ROOT/.git" ]]; then
+  # Repository exists, try to pull
+  echo "==> Existing repository found, fetching latest changes..."
+  git fetch origin "${REPO_BRANCH}" --tags --prune 2>/dev/null || {
+    echo "!! Warning: git fetch failed, trying force pull..."
+    git fetch origin "${REPO_BRANCH}" --tags --prune --force 2>/dev/null || true
+  }
+  
+  # Check if we can fast-forward
+  LOCAL_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "")
+  REMOTE_COMMIT=$(git rev-parse "origin/${REPO_BRANCH}" 2>/dev/null || echo "")
+  
+  if [[ -n "$LOCAL_COMMIT" && -n "$REMOTE_COMMIT" && "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]]; then
+    echo "==> Local commit ($LOCAL_COMMIT) differs from remote ($REMOTE_COMMIT)"
+    echo "==> Attempting to pull latest changes..."
+    if git pull origin "${REPO_BRANCH}" --ff-only 2>/dev/null; then
+      echo "==> Fast-forward pull successful"
+    else
+      echo "!! Fast-forward failed, attempting force pull (discarding local changes)..."
+      git reset --hard "origin/${REPO_BRANCH}" 2>/dev/null || true
+      git clean -fd 2>/dev/null || true
+      echo "==> Force pull complete - local changes discarded"
+    fi
+  elif [[ -n "$LOCAL_COMMIT" && -n "$REMOTE_COMMIT" && "$LOCAL_COMMIT" == "$REMOTE_COMMIT" ]]; then
+    echo "==> Repository is already up to date"
+  else
+    echo "!! Could not determine commit states, forcing reset to remote..."
+    git reset --hard "origin/${REPO_BRANCH}" 2>/dev/null || true
+    git clean -fd 2>/dev/null || true
+  fi
+else
+  # No repository, clone fresh
+  echo "==> No existing repository, cloning from ${REPO_URL}..."
+  git clone --branch "${REPO_BRANCH}" --depth 1 "${REPO_URL}" "$REPO_ROOT" 2>/dev/null || {
+    echo "!! Shallow clone failed, trying full clone..."
+    git clone --branch "${REPO_BRANCH}" "${REPO_URL}" "$REPO_ROOT"
+  }
+  echo "==> Repository cloned successfully"
 fi
 
 echo "==> Installing dependencies"
@@ -364,46 +415,28 @@ HTTPS_OK="no"
 if curl --resolve "${DOMAIN}:80:127.0.0.1" -I "http://${DOMAIN}" --max-time 10 >/tmp/${APP_NAME}-http-check.log 2>&1; then
   HTTP_OK="yes"
 fi
-if curl --resolve "${DOMAIN}:443:127.0.0.1" -k -I "https://${DOMAIN}" --max-time 10 >/tmp/${APP_NAME}-https-check.log 2>&1; then
+if curl --resolve "${DOMAIN}:443:127.0.0.1}" -k -I "https://${DOMAIN}" --max-time 10 >/tmp/${APP_NAME}-https-check.log 2>&1; then
   HTTPS_OK="yes"
 fi
 
 echo
-printf '%s
-' "Deployment complete."
-printf '%s
-' "Frontend: https://${DOMAIN}"
-printf '%s
-' "Server names: ${SERVER_NAMES}"
-printf '%s
-' "Frontend files synced from: ${REPO_ROOT}/dist -> ${APP_ROOT}"
-printf '%s
-' "Backend files synced from: ${REPO_ROOT}/{server,scripts,node_modules,package*.json} -> ${PUBLIC_ROOT}"
-printf '%s
-' "Internal API: ${API_HOST}:${API_PORT} (proxied only through Nginx)"
-printf '%s
-' "Legacy JSON path: ${PUBLIC_ROOT}/server/data/letters.json"
-printf '%s
-' "Legacy JSON source used: ${LEGACY_JSON_SOURCE:-none}"
-printf '%s
-' "MySQL/MariaDB mirror enabled: $([[ -n "${MYSQL_MIRROR_URL}" ]] && echo yes || echo no)"
-printf '%s
-' "Admin panel enabled: ${VITE_ENABLE_ADMIN_PANEL}"
-printf '%s
-' "Admin route: /#/${VITE_ADMIN_ROUTE}"
-printf '%s
-' "Local HTTP check: ${HTTP_OK}"
-printf '%s
-' "Local HTTPS check: ${HTTPS_OK}"
-printf '%s
-' "Saved deploy answers to: ${DEPLOY_ENV_FILE}"
-printf '%s
-' "Server stats: npm run server:stats"
-printf '%s
-' "Admin letter dump: npm run letters:admin -- --full"
-printf '%s
-' "Backups: systemctl status ${APP_NAME}-backup.timer"
+printf '%s\n' "Deployment complete."
+printf '%s\n' "Frontend: https://${DOMAIN}"
+printf '%s\n' "Server names: ${SERVER_NAMES}"
+printf '%s\n' "Frontend files synced from: ${REPO_ROOT}/dist -> ${APP_ROOT}"
+printf '%s\n' "Backend files synced from: ${REPO_ROOT}/{server,scripts,node_modules,package*.json} -> ${PUBLIC_ROOT}"
+printf '%s\n' "Internal API: ${API_HOST}:${API_PORT} (proxied only through Nginx)"
+printf '%s\n' "Legacy JSON path: ${PUBLIC_ROOT}/server/data/letters.json"
+printf '%s\n' "Legacy JSON source used: ${LEGACY_JSON_SOURCE:-none}"
+printf '%s\n' "MySQL/MariaDB mirror enabled: $([[ -n "${MYSQL_MIRROR_URL}" ]] && echo yes || echo no)"
+printf '%s\n' "Admin panel enabled: ${VITE_ENABLE_ADMIN_PANEL}"
+printf '%s\n' "Admin route: /#/${VITE_ADMIN_ROUTE}"
+printf '%s\n' "Local HTTP check: ${HTTP_OK}"
+printf '%s\n' "Local HTTPS check: ${HTTPS_OK}"
+printf '%s\n' "Saved deploy answers to: ${DEPLOY_ENV_FILE}"
+printf '%s\n' "Server stats: npm run server:stats"
+printf '%s\n' "Admin letter dump: npm run letters:admin -- --full"
+printf '%s\n' "Backups: systemctl status ${APP_NAME}-backup.timer"
 if [[ "$HTTP_OK" != "yes" || "$HTTPS_OK" != "yes" ]]; then
-  printf '%s
-' "Warning: local domain verification did not fully pass. Check nginx, firewall, cloud VPS security groups, and DNS propagation."
+  printf '%s\n' "Warning: local domain verification did not fully pass. Check nginx, firewall, cloud VPS security groups, and DNS propagation."
 fi

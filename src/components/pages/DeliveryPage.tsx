@@ -111,11 +111,23 @@ function ReadingView({ letter, onBack }: { letter: Letter; onBack: () => void })
     setShowAllPages(false);
   }, [letter.content]);
 
+  // Print handling - simplified to avoid multiple print dialogs
+  const printTriggered = useRef(false);
+  
   useEffect(() => {
-    const beforePrint = () => setShowAllPages(true);
-    const afterPrint = () => setShowAllPages(false);
+    const beforePrint = () => {
+      setShowAllPages(true);
+      printTriggered.current = true;
+    };
+    const afterPrint = () => {
+      setShowAllPages(false);
+      printTriggered.current = false;
+    };
     const media = window.matchMedia('print');
-    const mediaHandler = (event: MediaQueryListEvent) => setShowAllPages(event.matches);
+    const mediaHandler = (event: MediaQueryListEvent) => {
+      setShowAllPages(event.matches);
+      printTriggered.current = event.matches;
+    };
     window.addEventListener('beforeprint', beforePrint);
     window.addEventListener('afterprint', afterPrint);
     media.addEventListener?.('change', mediaHandler);
@@ -127,7 +139,10 @@ function ReadingView({ letter, onBack }: { letter: Letter; onBack: () => void })
   }, []);
 
   const handlePrint = useCallback(() => {
+    if (printTriggered.current) return; // Prevent duplicate print calls
+    printTriggered.current = true;
     setShowAllPages(true);
+    // Let the beforeprint handler manage the state; just trigger print
     window.setTimeout(() => window.print(), 120);
   }, []);
 
@@ -188,6 +203,11 @@ function ReadingView({ letter, onBack }: { letter: Letter; onBack: () => void })
     );
   });
 
+  // Determine which view to render
+  const isPrintView = showAllPages;
+  const isTypewriterView = !typingDone && !showAllPages;
+  const isFullView = typingDone && !showAllPages;
+
   return (
     <div className="min-h-screen parchment-bg fade-slide-up">
       <nav className="no-print flex items-center justify-between px-4 py-3 md:px-8 relative z-20" style={{ borderBottom: '1px solid rgba(139,115,64,0.12)' }}>
@@ -196,7 +216,8 @@ function ReadingView({ letter, onBack }: { letter: Letter; onBack: () => void })
         <button onClick={handlePrint} className="font-heading text-[11px] tracking-[0.12em] text-ink/70 uppercase hover:text-ink transition-colors duration-500">Print</button>
       </nav>
       <div className="max-w-3xl mx-auto px-4 py-8 md:py-12 relative z-10">
-        {!typingDone && (
+        {/* Typewriter view - first page only */}
+        {isTypewriterView && (
           <article className="screen-only relative letter-paper rounded-sm mb-8" style={{ padding: 'clamp(28px, 6vw, 56px)', minHeight: '500px' }}>
             <div className="absolute top-0 left-0 pointer-events-none z-10"><CornerOrnament position="top-left" color="#8b7340" /></div>
             <div className="absolute top-0 right-0 pointer-events-none z-10"><CornerOrnament position="top-right" color="#8b7340" /></div>
@@ -220,13 +241,14 @@ function ReadingView({ letter, onBack }: { letter: Letter; onBack: () => void })
           </article>
         )}
 
-        {(typingDone || showAllPages) && (
-          <div className={`${showAllPages ? '' : 'fade-slide-up'}`}>
+        {/* Full view - all pages (after typewriter done or print view) */}
+        {(isFullView || isPrintView) && (
+          <div className={isPrintView ? '' : 'fade-slide-up'}>
             {printRenderedPages.map((pageHtml, pi) => (
-              <article key={pi} className={`relative letter-paper rounded-sm mb-8 last:mb-0 ${showAllPages ? 'print-letter' : 'screen-only'}`}
+              <article key={pi} className={`relative letter-paper rounded-sm mb-8 last:mb-0 ${isPrintView ? 'print-letter' : 'screen-only'}`}
                 style={{ 
-                  padding: showAllPages ? undefined : 'clamp(28px, 6vw, 56px)', 
-                  minHeight: showAllPages ? undefined : '500px',
+                  padding: isPrintView ? undefined : 'clamp(28px, 6vw, 56px)', 
+                  minHeight: isPrintView ? undefined : '500px',
                   pageBreakAfter: pi < printRenderedPages.length - 1 ? 'always' : 'auto' 
                 }}>
                 <div className="print-border hidden absolute inset-5 md:inset-7 pointer-events-none rounded-sm" />
